@@ -3,6 +3,7 @@ import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
+import 'package:smart_expense/utills/helper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,13 +32,16 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   void initState() {
+    initApp();
     super.initState();
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(
-        const Duration(seconds: 5),
-        () => Navigator.pushReplacementNamed(context, AppRoutes.walkthrough),
-      );
-    });
+  Future<void> initApp() async {
+    final route = await Helper.initialRoute();
+
+    Future.delayed(
+      const Duration(seconds: 3),
+      () => Navigator.of(context).pushReplacementNamed(route),
+    );
   }
 }

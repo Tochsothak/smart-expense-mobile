@@ -6,4 +6,5 @@ class AppColours {
 
   static Color bgColor = const Color(0xFFFFFFFF);
   static Color light20 = const Color(0xFF91919F);
+  static Color inputBg = const Color(0xFFE0E2E9);
 }

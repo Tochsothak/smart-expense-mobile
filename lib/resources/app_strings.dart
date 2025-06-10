@@ -12,6 +12,7 @@ class AppStrings {
   static String signUp = "Sign Up";
   static String verification = "Verification";
   static String login = "Login";
+  static String logout = "Logout";
   static String name = "Name";
   static String emailAddress = "E-mail Address";
   static String password = "Password";
@@ -23,4 +24,14 @@ class AppStrings {
   static String inputIsRequired = ":input is required";
   static String anErrorOccurredTryAgain =
       "Oops! An error occurred please try again.";
+  static String noInternetAccess =
+      "Sorry you need an active internet connection";
+  static String enterYourVerificationCode = "Enter Your Verification Code";
+  static String verificationCodeHint1 =
+      "We send verification code to your email";
+  static String verificationCodeHint2 = "You can check your inbox.";
+  static String resendVerificationCodeHint =
+      "Did not receive the code? Send again";
+  static String verify = "Verify";
+  static String notUserLogout = "Not :user? logout";
 }

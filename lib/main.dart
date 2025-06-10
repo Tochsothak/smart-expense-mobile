@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/views/auth/signup.dart';
 import 'package:smart_expense/views/auth/verification.dart';
+import 'package:smart_expense/views/home.dart';
 import 'package:smart_expense/views/onboarding/splash.dart';
 import 'package:smart_expense/views/onboarding/wallkthrough.dart';
 
-void main() {
+void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserModelAdapter());
   runApp(const MyApp());
 }
 
@@ -30,6 +35,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.walkthrough: (context) => const WalkThroughScreen(),
         AppRoutes.signup: (context) => const SignUpScreen(),
         AppRoutes.verification: (context) => const VerificationScreen(),
+        AppRoutes.home: (context) => const HomeScreen(),
       },
     );
   }

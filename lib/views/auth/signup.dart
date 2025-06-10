@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smart_expense/controllers/auth_controller.dart';
+import 'package:smart_expense/controllers/auth.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
@@ -8,6 +8,7 @@ import 'package:smart_expense/resources/app_styles.dart';
 import 'package:smart_expense/utills/helper.dart';
 import 'package:smart_expense/views/components/form/checkbox_input.dart';
 import 'package:smart_expense/views/components/form/text_input.dart';
+import 'package:smart_expense/views/components/ui/app_bar.dart';
 import 'package:smart_expense/views/components/ui/button.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -18,18 +19,30 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final formKey = GlobalKey<FormState>();
-  final TextEditingController nameEditingController = TextEditingController();
-  final TextEditingController emailEditingController = TextEditingController();
-  final TextEditingController passwordEditingController =
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameEditingController = TextEditingController();
+  final TextEditingController _emailEditingController = TextEditingController();
+  final TextEditingController _passwordEditingController =
       TextEditingController();
-  final nameFocus = FocusNode();
-  final emailFocus = FocusNode();
-  final passwordFocus = FocusNode();
-  bool isLoading = false;
-  bool hasAgreed = false;
+  final _nameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  bool _isLoading = false;
+  bool _hasAgreed = false;
 
-  Map<String, dynamic> errors = {};
+  Map<String, dynamic> _errors = {};
+
+  @override
+  void dispose() {
+    _nameEditingController.dispose();
+    _emailEditingController.dispose();
+    _passwordEditingController.dispose();
+
+    _nameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,49 +50,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: AppColours.bgColor,
-        appBar: AppBar(
-          backgroundColor: AppColours.bgColor,
-          title: Text(AppStrings.signUp, style: AppStyles.appTitle()),
-          centerTitle: true,
-          leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back),
-          ),
-        ),
+        appBar: buildAppBar(context, AppStrings.signUp),
         body: Form(
-          key: formKey,
+          key: _formKey,
           child: ListView(
             padding: EdgeInsets.all(24),
             children: [
               AppSpacing.vertical(size: 48),
-              inputFields(),
-              AppSpacing.vertical(),
-              CheckboxInputComponent(
-                isEnable: !isLoading,
-                label: Text.rich(
-                  style: AppStyles.medium(size: 14),
-                  TextSpan(
-                    text: AppStrings.agreeText,
-                    children: [
-                      WidgetSpan(child: AppSpacing.horizontal(size: 4)),
-                      TextSpan(
-                        text: AppStrings.termsAndPrivacy,
-                        style: AppStyles.medium(
-                          size: 14,
-                          color: AppColours.primaryColour,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                value: hasAgreed,
-                onChanged: (value) => setState(() => hasAgreed = value),
-              ),
+              _signUpForm(),
               AppSpacing.vertical(),
               ButtonComponent(
-                isLoading: isLoading,
+                isLoading: _isLoading,
                 label: AppStrings.signUp,
-                onPressed: signup,
+                onPressed: _handleSignUp,
               ),
               AppSpacing.vertical(size: 16),
               Text(
@@ -126,55 +109,77 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget inputFields() {
+  Widget _signUpForm() {
     return Column(
       children: [
         TextInputComponent(
-          error: errors['name']?.join(', '),
-          isEnabled: !isLoading,
-          focusNode: nameFocus,
+          error: _errors['name']?.join(', '),
+          isEnabled: !_isLoading,
+          focusNode: _nameFocus,
           label: AppStrings.name,
-          textEditingController: nameEditingController,
+          textEditingController: _nameEditingController,
           textInputType: TextInputType.name,
           textInputAction: TextInputAction.next,
           isRequired: true,
           onFieldSubmitted:
-              (value) => FocusScope.of(context).requestFocus(emailFocus),
+              (value) => FocusScope.of(context).requestFocus(_emailFocus),
         ),
         AppSpacing.vertical(),
         TextInputComponent(
-          error: errors['email']?.join(', '),
-          isEnabled: !isLoading,
-          focusNode: emailFocus,
+          error: _errors['email']?.join(', '),
+          isEnabled: !_isLoading,
+          focusNode: _emailFocus,
           label: AppStrings.emailAddress,
-          textEditingController: emailEditingController,
+          textEditingController: _emailEditingController,
           textInputType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
           isRequired: true,
         ),
         AppSpacing.vertical(),
         TextInputComponent(
-          error: errors['password']?.join(', '),
-          isEnabled: !isLoading,
-          focusNode: passwordFocus,
+          error: _errors['password']?.join(', '),
+          isEnabled: !_isLoading,
+          focusNode: _passwordFocus,
           label: AppStrings.password,
           isPassword: true,
-          textEditingController: passwordEditingController,
+          textEditingController: _passwordEditingController,
           textInputAction: TextInputAction.done,
           isRequired: true,
+        ),
+        AppSpacing.vertical(),
+        CheckboxInputComponent(
+          isEnable: !_isLoading,
+          label: Text.rich(
+            style: AppStyles.medium(size: 14),
+            TextSpan(
+              text: AppStrings.agreeText,
+              children: [
+                WidgetSpan(child: AppSpacing.horizontal(size: 4)),
+                TextSpan(
+                  text: AppStrings.termsAndPrivacy,
+                  style: AppStyles.medium(
+                    size: 14,
+                    color: AppColours.primaryColour,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          value: _hasAgreed,
+          onChanged: (value) => setState(() => _hasAgreed = value),
         ),
       ],
     );
   }
 
-  Future<void> signup() async {
-    setState(() => errors = {});
+  Future<void> _handleSignUp() async {
+    setState(() => _errors = {});
     FocusScope.of(context).unfocus();
-    if (!formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    if (!hasAgreed) {
+    if (!_hasAgreed) {
       Helper.snackBar(
         isSuccess: false,
         context,
@@ -186,21 +191,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
 
     var result = await AuthController.register(
-      nameEditingController.text.trim(),
-      emailEditingController.text.trim(),
-      passwordEditingController.text,
+      _nameEditingController.text.trim(),
+      _emailEditingController.text.trim(),
+      _passwordEditingController.text,
     );
 
-    setState(() => isLoading = false);
+    setState(() => _isLoading = false);
 
     if (!result.isSuccess) {
       print(result.errors);
       Helper.snackBar(context, message: result.message, isSuccess: false);
       if (result.errors != null) {
-        errors = result.errors!;
+        setState(() => _errors = result.errors!);
       }
       return;
     }

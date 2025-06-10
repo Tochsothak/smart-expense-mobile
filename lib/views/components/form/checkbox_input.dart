@@ -6,6 +6,7 @@ class CheckboxInputComponent extends StatefulWidget {
   final ValueChanged<bool> onChanged;
   final Widget? label;
   final bool isEnable;
+
   const CheckboxInputComponent({
     super.key,
     required this.value,

@@ -186,8 +186,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
       );
       return;
     }
-
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.home, (Route<dynamic> route) => false);
+    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
   }
 
   String _showTimer() {
@@ -280,6 +282,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
       Helper.snackBar(context, message: result.message, isSuccess: false);
       return;
     }
-    Navigator.pushReplacementNamed(context, AppRoutes.walkthrough);
+    Navigator.of(context).pushReplacementNamed(AppRoutes.walkthrough);
   }
 }

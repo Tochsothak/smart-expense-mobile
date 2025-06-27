@@ -6,13 +6,13 @@ part 'result.g.dart';
 class Result<T> {
   final String message;
   final bool isSuccess;
-  T? result;
+  T? results;
 
   Map<String, dynamic>? errors;
 
   Result({
     required this.message,
-    this.result,
+    this.results,
     required this.isSuccess,
     this.errors,
   });

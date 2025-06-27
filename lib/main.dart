@@ -4,6 +4,10 @@ import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_strings.dart';
+import 'package:smart_expense/views/auth/forgot_password.dart';
+import 'package:smart_expense/views/auth/forgot_password_sent.dart';
+import 'package:smart_expense/views/auth/login.dart';
+import 'package:smart_expense/views/auth/reset_password.dart';
 import 'package:smart_expense/views/auth/signup.dart';
 import 'package:smart_expense/views/auth/verification.dart';
 import 'package:smart_expense/views/home.dart';
@@ -36,6 +40,11 @@ class MyApp extends StatelessWidget {
         AppRoutes.signup: (context) => const SignUpScreen(),
         AppRoutes.verification: (context) => const VerificationScreen(),
         AppRoutes.home: (context) => const HomeScreen(),
+        AppRoutes.login: (context) => const LoginScreen(),
+        AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
+        AppRoutes.forgotPasswordSent:
+            (context) => const ForgotPasswordSentScreen(),
+        AppRoutes.resetPassword: (context) => const ResetPasswordScreen(),
       },
     );
   }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/services/api.dart';
 import 'package:smart_expense/services/api_routes.dart';
@@ -6,7 +7,7 @@ import 'package:smart_expense/models/result.dart';
 import 'package:smart_expense/services/auth.dart';
 
 class AuthController {
-  static Future<Result> register(
+  static Future<Result<UserModel>> register(
     String name,
     String email,
     String password,
@@ -22,11 +23,38 @@ class AuthController {
         results['user'],
         results['token'],
       );
-      print(userModel.name);
       return Result(
         isSuccess: true,
         message: response.data['message'],
-        result: userModel,
+        results: userModel,
+      );
+    } on DioException catch (e) {
+      final message = ApiService.errorMessage(e);
+      final errors = e.response?.data['errors'];
+      return Result(isSuccess: false, message: message, errors: errors);
+    } catch (e) {
+      return Result(
+        isSuccess: false,
+        message: AppStrings.anErrorOccurredTryAgain,
+      );
+    }
+  }
+
+  static Future<Result<UserModel>> login(String email, String password) async {
+    try {
+      final response = await ApiService.post(ApiRoutes.loginUrl, {
+        "email": email,
+        "password": password,
+      });
+      final results = response.data['results'];
+      final userModel = await AuthService.create(
+        results['user'],
+        results['token'],
+      );
+      return Result(
+        isSuccess: true,
+        message: response.data['message'],
+        results: userModel,
       );
     } on DioException catch (e) {
       final message = ApiService.errorMessage(e);
@@ -50,7 +78,7 @@ class AuthController {
       return Result(
         isSuccess: true,
         message: response.data['message'],
-        result: userModel,
+        results: userModel,
       );
     } on DioException catch (e) {
       final message = ApiService.errorMessage(e);
@@ -81,6 +109,24 @@ class AuthController {
     }
   }
 
+  static Future<Result> resetOtp(String email) async {
+    try {
+      final response = await ApiService.post(ApiRoutes.resetOtpUrl, {
+        'email': email,
+      });
+      return Result(isSuccess: true, message: response.data['message']);
+    } on DioException catch (e) {
+      final message = ApiService.errorMessage(e);
+      final errors = e.response?.data['errors'];
+      return Result(isSuccess: false, message: message, errors: errors);
+    } catch (e) {
+      return Result(
+        isSuccess: false,
+        message: AppStrings.anErrorOccurredTryAgain,
+      );
+    }
+  }
+
   static Future<Result> logout() async {
     try {
       final response = await ApiService.post(ApiRoutes.logoutUrl, {});
@@ -91,6 +137,32 @@ class AuthController {
     } on DioException catch (e) {
       final message = ApiService.errorMessage(e);
       final errors = e.response?.data['error'];
+      return Result(isSuccess: false, message: message, errors: errors);
+    } catch (e) {
+      return Result(
+        isSuccess: false,
+        message: AppStrings.anErrorOccurredTryAgain,
+      );
+    }
+  }
+
+  static Future<Result> resetPassword(
+    String email,
+    String otp,
+    String password,
+    String passwordConfirmation,
+  ) async {
+    try {
+      final response = await ApiService.post(ApiRoutes.resetPasswordUrl, {
+        'email': email,
+        'otp': otp,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      });
+      return Result(isSuccess: true, message: response.data['message']);
+    } on DioException catch (e) {
+      final message = ApiService.errorMessage(e);
+      final errors = e.response?.data['errors'];
       return Result(isSuccess: false, message: message, errors: errors);
     } catch (e) {
       return Result(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smart_expense/resources/app_colours.dart';
-import 'package:smart_expense/resources/app_route.dart';
+
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
 import 'package:smart_expense/utills/helper.dart';

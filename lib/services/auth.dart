@@ -52,6 +52,7 @@ class AuthService {
     return userModel;
   }
 
+  // Get user from hive database
   static Future<UserModel?> get() async {
     final userBox = await Hive.openBox(UserModel.userBox);
     if (userBox.isEmpty) return null;

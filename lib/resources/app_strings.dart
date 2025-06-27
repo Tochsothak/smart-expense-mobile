@@ -13,6 +13,7 @@ class AppStrings {
   static String verification = "Verification";
   static String login = "Login";
   static String logout = "Logout";
+  static String continueText = "Continue";
   static String name = "Name";
   static String emailAddress = "E-mail Address";
   static String password = "Password";
@@ -21,6 +22,7 @@ class AppStrings {
   static String orWith = "Or With";
   static String signupWithGoogle = "Sign Up with Google";
   static String alreadyHaveAnAccount = "Already have and account?";
+  static String dontHaveAnAccountYet = "Don't have an account yet?";
   static String inputIsRequired = ":input is required";
   static String anErrorOccurredTryAgain =
       "Oops! An error occurred please try again.";
@@ -34,4 +36,16 @@ class AppStrings {
       "Did not receive the code? Send again";
   static String verify = "Verify";
   static String notUserLogout = "Not :user? logout";
+  static String forgotPassword = "Forgot Password?";
+  static String forgotPasswordTitle = "Forgot Password";
+  static String forgotPasswordHint =
+      "Don't worry. Enter your email and we'll send you an OTP to reset your password.";
+  static String yourEmailIsOnTheWay = "Your email is on  the way";
+  static String yourEmailIsOnTheWayHint =
+      "Check your email:email and follow the instructions to reset your password using the verification code.";
+  static String resetPassword = "Reset Password";
+  static String verificationCode = "Verification Code";
+  static String newPassword = "New Password";
+  static String retypeNewPassword = "Retype New Password";
+  static String passwordDonotMatch = "Password do not match!";
 }

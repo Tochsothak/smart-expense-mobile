@@ -19,15 +19,13 @@ class _HomeScreenState extends State<HomeScreen> {
   UserModel? user;
   @override
   void initState() {
-    getUser();
+    _getUser();
     super.initState();
   }
 
-  Future<void> getUser() async {
+  Future<void> _getUser() async {
     user = await AuthService.get();
   }
-
-  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: buildAppBar(context, 'Home'),
       body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (user != null) ...[Text("What's up ${user?.name}")],
 

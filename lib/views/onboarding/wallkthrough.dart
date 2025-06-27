@@ -16,6 +16,7 @@ class WalkThroughScreen extends StatefulWidget {
 
 class _WalkThroughScreenState extends State<WalkThroughScreen> {
   PageController pageController = PageController();
+
   List<SlideModel> slides = [
     SlideModel(
       AppStrings.walkThroughTitle1,
@@ -100,7 +101,7 @@ class _WalkThroughScreenState extends State<WalkThroughScreen> {
         ButtonComponent(
           label: AppStrings.login,
           type: ButtonType.secondary,
-          onPressed: () {},
+          onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
         ),
       ],
     );

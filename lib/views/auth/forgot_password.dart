@@ -67,7 +67,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ButtonComponent(
               label: AppStrings.continueText,
               isLoading: _isLoading,
-              onPressed: handleContinue,
+              onPressed: _handleContinue,
             ),
           ],
         ),
@@ -75,7 +75,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  Future<void> handleContinue() async {
+  Future<void> _handleContinue() async {
     setState(() => _errors = {});
 
     FocusScope.of(context).unfocus();

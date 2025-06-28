@@ -42,10 +42,13 @@ class AppStrings {
       "Don't worry. Enter your email and we'll send you an OTP to reset your password.";
   static String yourEmailIsOnTheWay = "Your email is on  the way";
   static String yourEmailIsOnTheWayHint =
-      "Check your email:email and follow the instructions to reset your password using the verification code.";
+      "Check your email :email and follow the instructions to reset your password using the verification code.";
   static String resetPassword = "Reset Password";
   static String verificationCode = "Verification Code";
   static String newPassword = "New Password";
   static String retypeNewPassword = "Retype New Password";
   static String passwordDonotMatch = "Password do not match!";
+  static String letSetupYourPin = "Let's set up your PIN";
+  static String retypeYourPinAgain = "Re-type your PIN again";
+  static String pinDoNotMatch = "PIN do not match!";
 }

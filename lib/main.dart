@@ -8,6 +8,7 @@ import 'package:smart_expense/views/auth/forgot_password.dart';
 import 'package:smart_expense/views/auth/forgot_password_sent.dart';
 import 'package:smart_expense/views/auth/login.dart';
 import 'package:smart_expense/views/auth/reset_password.dart';
+import 'package:smart_expense/views/auth/setup_pin.dart';
 import 'package:smart_expense/views/auth/signup.dart';
 import 'package:smart_expense/views/auth/verification.dart';
 import 'package:smart_expense/views/home.dart';
@@ -45,6 +46,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.forgotPasswordSent:
             (context) => const ForgotPasswordSentScreen(),
         AppRoutes.resetPassword: (context) => const ResetPasswordScreen(),
+        AppRoutes.setupPin: (context) => const SetupPinScreen(),
       },
     );
   }

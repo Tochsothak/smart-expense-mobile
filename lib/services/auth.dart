@@ -1,3 +1,4 @@
+import 'package:bcrypt/bcrypt.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:smart_expense/models/user.dart';
 
@@ -48,6 +49,18 @@ class AuthService {
             : userModel.updatedAt;
 
     await userBox.put(0, userModel);
+
+    return userModel;
+  }
+
+  // Set pin
+  static Future<UserModel> setPin(String pin) async {
+    final userBox = await Hive.openBox(UserModel.userBox);
+    if (userBox.isEmpty) throw Exception("User does not exist");
+
+    var userModel = userBox.get(0);
+    final hashed = BCrypt.hashpw(pin, BCrypt.gensalt());
+    userModel.pin = hashed;
 
     return userModel;
   }

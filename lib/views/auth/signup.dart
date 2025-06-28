@@ -217,7 +217,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
       return;
     }
-
-    Navigator.pushNamed(context, AppRoutes.verification);
+    final route = await Helper.initialRoute();
+    Navigator.pushNamed(context, route);
   }
 }

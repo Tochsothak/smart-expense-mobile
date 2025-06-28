@@ -22,6 +22,8 @@ class Helper {
       return AppRoutes.walkthrough;
     } else if (user.emailVerifiedAt == null) {
       return AppRoutes.verification;
+    } else if (user.pin == null) {
+      return AppRoutes.setupPin;
     }
 
     return AppRoutes.home;

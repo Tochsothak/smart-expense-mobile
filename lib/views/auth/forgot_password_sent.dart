@@ -18,7 +18,6 @@ class _ForgotPasswordSentScreenState extends State<ForgotPasswordSentScreen> {
   @override
   Widget build(BuildContext context) {
     final email = ModalRoute.of(context)!.settings.arguments as String;
-    print(email);
     return Scaffold(
       backgroundColor: AppColours.bgColor,
       body: ListView(

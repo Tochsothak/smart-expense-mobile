@@ -104,10 +104,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
             child: Text(
               AppStrings.resendVerificationCodeHint,
               style: AppStyles.medium(color: AppColours.primaryColour).copyWith(
-                decoration:
-                    _timer!.isActive
-                        ? TextDecoration.none
-                        : TextDecoration.underline,
+                decoration: TextDecoration.underline,
                 decorationColor: AppColours.primaryColour,
               ),
             ),
@@ -186,10 +183,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
       );
       return;
     }
+    final route = await Helper.initialRoute();
     Navigator.of(
       context,
-    ).pushNamedAndRemoveUntil(AppRoutes.home, (Route<dynamic> route) => false);
-    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+    ).pushNamedAndRemoveUntil(route, (Route<dynamic> route) => false);
   }
 
   String _showTimer() {

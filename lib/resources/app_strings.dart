@@ -47,8 +47,17 @@ class AppStrings {
   static String verificationCode = "Verification Code";
   static String newPassword = "New Password";
   static String retypeNewPassword = "Retype New Password";
-  static String passwordDonotMatch = "Password do not match!";
+  static String passwordDoNotMatch = "Password do not match!";
   static String letSetupYourPin = "Let's set up your PIN";
   static String retypeYourPinAgain = "Re-type your PIN again";
   static String pinDoNotMatch = "PIN do not match!";
+  static String letSetupYourAccount = "Let's set up your account!";
+  static String letSetupYourAccountHint =
+      "Account can be your bank, credit card or your wallet";
+  static String addNewAccount = "Add New Account";
+  static String balance = "Balance";
+  static String currency = "Currency";
+  static String accountType = "Account Type";
+  static String youAreSet = "You're set!";
+  static String search = "Search";
 }

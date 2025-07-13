@@ -74,6 +74,7 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
     );
   }
 
+  // Custom number pad
   Widget _inputNumber() {
     return Column(
       children: [

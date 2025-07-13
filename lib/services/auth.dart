@@ -62,6 +62,7 @@ class AuthService {
     final hashed = BCrypt.hashpw(pin, BCrypt.gensalt());
     userModel.pin = hashed;
 
+    userBox.put(0, userModel);
     return userModel;
   }
 
@@ -71,11 +72,16 @@ class AuthService {
     if (userBox.isEmpty) return null;
 
     final userModel = await userBox.getAt(0);
+
     return userModel as UserModel;
   }
 
-  static Future<void> delete() async {
+  static Future delete() async {
     final userBox = await Hive.openBox(UserModel.userBox);
-    userBox.clear();
+    await userBox.clear();
   }
+
+  // static Future<void> clearHive() async {
+  //   await Hive.deleteFromDisk();
+  // }
 }

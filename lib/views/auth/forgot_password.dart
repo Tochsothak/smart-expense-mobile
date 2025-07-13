@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:smart_expense/controllers/auth.dart';
-
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
@@ -85,6 +84,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     setState(() => _isLoading = true);
+
     final result = await AuthController.resetOtp(
       _emailEditingController.text.trim(),
     );

@@ -9,4 +9,7 @@ class AppRoutes {
   static String forgotPasswordSent = 'forgot-password-sent';
   static String resetPassword = 'reset-password';
   static String setupPin = "/setup-pin";
+  static String setUpAccount = "/set-up-account";
+  static String addAccount = "/add-account";
+  static String signUpSuccess = "/signup-success";
 }

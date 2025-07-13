@@ -1,8 +1,8 @@
 class ApiRoutes {
   // Base Url
-  static const String baseUrl = 'http://192.168.189.180:8000/api';
+  static const String baseUrl = 'http://192.168.50.237:8000/api';
 
-  // Endpoind
+  // Endpoint
   static const String registerUrl = '$baseUrl/register';
   static const String verify = '$baseUrl/verify';
   static const String logoutUrl = '$baseUrl/logout';
@@ -10,4 +10,7 @@ class ApiRoutes {
   static const String loginUrl = '$baseUrl/login';
   static const String resetOtpUrl = '$baseUrl/reset/otp';
   static const String resetPasswordUrl = '$baseUrl/reset/password';
+  static const String currencyUrl = '$baseUrl/currency';
+  static const String accountTypeUrl = '$baseUrl/account-type';
+  static const String accountUrl = '$baseUrl/account';
 }

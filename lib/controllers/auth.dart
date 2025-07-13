@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:smart_expense/controllers/account.dart';
 import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_strings.dart';
+import 'package:smart_expense/services/account.dart';
 import 'package:smart_expense/services/api.dart';
 import 'package:smart_expense/services/api_routes.dart';
 import 'package:smart_expense/models/result.dart';
@@ -51,6 +53,9 @@ class AuthController {
         results['user'],
         results['token'],
       );
+      //TODO: Improve load Account
+      await AccountController.load();
+
       return Result(
         isSuccess: true,
         message: response.data['message'],
@@ -132,6 +137,7 @@ class AuthController {
       final response = await ApiService.post(ApiRoutes.logoutUrl, {});
 
       await AuthService.delete();
+      await AccountService.delete();
 
       return Result(isSuccess: true, message: response.data['message']);
     } on DioException catch (e) {
@@ -175,6 +181,7 @@ class AuthController {
   static Future<Result> setPin(String pin) async {
     try {
       final user = AuthService.setPin(pin);
+
       return Result(isSuccess: true, message: '');
     } catch (e) {
       return Result(

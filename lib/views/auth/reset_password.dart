@@ -45,7 +45,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     email = ModalRoute.of(context)!.settings.arguments as String;
-    print(email);
     return GestureDetector(
       onTap: FocusScope.of(context).unfocus,
       child: Scaffold(
@@ -132,7 +131,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         _passwordConfirmationEditingController.text) {
       Helper.snackBar(
         context,
-        message: AppStrings.passwordDonotMatch,
+        message: AppStrings.passwordDoNotMatch,
         isSuccess: false,
       );
       FocusScope.of(context).requestFocus(_passwordConfirmationFocus);

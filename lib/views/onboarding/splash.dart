@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smart_expense/resources/app_colours.dart';
+import 'package:smart_expense/resources/app_route.dart';
 
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
@@ -38,6 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> initApp() async {
     final route = await Helper.initialRoute();
+    print(route);
 
     Future.delayed(
       const Duration(seconds: 3),

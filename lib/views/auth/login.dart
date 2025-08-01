@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:smart_expense/controllers/account.dart';
 import 'package:smart_expense/controllers/auth.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
@@ -153,8 +152,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _emailEditingController.text.trim(),
       _passwordEditingController.text.trim(),
     );
-
-    await AccountController.load();
 
     setState(() => _isLoading = false);
 

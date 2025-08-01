@@ -8,11 +8,20 @@ AppBar buildAppBar(
   String title, {
   Color? backgroundColor,
   Color? foregroundColor,
+  Function()? onTap,
+  IconData? icon,
 }) {
   return AppBar(
     title: Text(title, style: AppStyles.appTitle(color: foregroundColor)),
+    actions: [
+      IconButton(
+        onPressed: onTap,
+        icon: Icon(icon, color: foregroundColor, size: 30),
+      ),
+    ],
     centerTitle: true,
     backgroundColor: backgroundColor ?? AppColours.bgColor,
+    elevation: 0,
     leading:
         Navigator.of(context).canPop()
             ? IconButton(

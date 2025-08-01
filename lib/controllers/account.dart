@@ -34,7 +34,7 @@ class AccountController {
       final errors = e.response?.data['errors'];
       return Result(isSuccess: false, message: message, errors: errors);
     } catch (e) {
-      // print(e);
+      print(e);
       return Result(
         isSuccess: false,
         message: AppStrings.anErrorOccurredTryAgain,
@@ -47,7 +47,6 @@ class AccountController {
       final response = await ApiService.get(ApiRoutes.accountUrl, {});
       final results = response.data['results'];
       final accounts = await AccountService.createAccounts(results['accounts']);
-      print(accounts);
       return Result(
         isSuccess: true,
         message: response.data['message'],

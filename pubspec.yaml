@@ -40,6 +40,9 @@ dependencies:
   hive_flutter: ^1.1.0
   bcrypt: ^1.1.3
   dropdown_search: ^6.0.2
+  syncfusion_flutter_charts: ^30.1.40
+  flutter_speed_dial: ^7.0.0
+  flutter_slidable: ^4.0.0
 
 dev_dependencies:
   flutter_test:

@@ -35,6 +35,14 @@ class AccountService {
     return accountModel as AccountModel;
   }
 
+  static Future<List<AccountModel>?> getAll() async {
+    final accountListBox = await Hive.openBox(AccountModel.accountBox);
+    if (accountListBox.isEmpty) return null;
+    List<AccountModel> accountModels =
+        accountListBox.values.cast<AccountModel>().toList();
+    return accountModels;
+  }
+
   static Future delete() async {
     final accountBox = await Hive.openBox(AccountModel.accountBox);
     await accountBox.clear();

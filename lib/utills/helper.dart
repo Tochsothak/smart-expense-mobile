@@ -10,7 +10,9 @@ class Helper {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     return ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        behavior: SnackBarBehavior.floating,
         content: Text(message, style: AppStyles.snackBar()),
+
         backgroundColor:
             isSuccess ? AppColours.primaryColour : Colors.red.shade900,
       ),
@@ -31,7 +33,7 @@ class Helper {
       return AppRoutes.setUpAccount;
     }
 
-    return AppRoutes.home;
+    return AppRoutes.bottomNavigationBar;
   }
 
   static double parseAmount(String value) {

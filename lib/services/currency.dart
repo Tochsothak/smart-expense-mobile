@@ -11,6 +11,14 @@ class CurrencyService {
     return currencyModel;
   }
 
+  static Future<List<CurrencyModel>?> getAll() async {
+    final currencyBoxList = await Hive.openBox(CurrencyModel.currencyBox);
+    if (currencyBoxList.isEmpty) return null;
+    List<CurrencyModel> currencyList =
+        currencyBoxList.values.cast<CurrencyModel>().toList();
+    return currencyList;
+  }
+
   static Future<List<CurrencyModel>> createCurrencies(List currencies) async {
     final currencyBox = await Hive.openBox(CurrencyModel.currencyBox);
     await currencyBox.clear();

@@ -25,15 +25,36 @@ class AccountModel {
   late String currentBalanceText;
 
   @HiveField(6)
-  String? colourCode;
+  double? totalIncome;
 
   @HiveField(7)
-  late int active;
+  String? totalIncomeText;
 
   @HiveField(8)
-  late CurrencyModel currency;
+  double? totalExpense;
 
   @HiveField(9)
+  String? totalExpenseText;
+
+  @HiveField(10)
+  int? transactionCount;
+
+  @HiveField(11)
+  int? incomeCount;
+
+  @HiveField(12)
+  int? expenseCount;
+
+  @HiveField(13)
+  String? colourCode;
+
+  @HiveField(14)
+  int? active;
+
+  @HiveField(15)
+  late CurrencyModel currency;
+
+  @HiveField(16)
   late AccountTypeModel accountType;
 
   static String accountBox = 'accounts';
@@ -51,11 +72,20 @@ class AccountModel {
     );
     accountModel.currentBalanceText = account['current_balance_text'];
     accountModel.colourCode = account['colour_code'];
-    accountModel.active = account['active'];
+    accountModel.active = int.parse(account['active'].toString());
     accountModel.currency = CurrencyModel.fromMap(account['currency']);
     accountModel.accountType = AccountTypeModel.fromMap(
       account['account_type'],
     );
+    accountModel.totalIncome = double.parse(account['total_income'].toString());
+    accountModel.totalIncomeText = account['total_income_text'];
+    accountModel.totalExpense = double.parse(
+      account['total_expense'].toString(),
+    );
+    accountModel.totalExpenseText = account['total_expense_text'];
+    accountModel.transactionCount = account['transaction_count'];
+    accountModel.incomeCount = account['income_count'];
+    accountModel.expenseCount = account['expense_count'];
 
     return accountModel;
   }

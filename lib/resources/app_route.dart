@@ -12,4 +12,13 @@ class AppRoutes {
   static String setUpAccount = "/set-up-account";
   static String addAccount = "/add-account";
   static String signUpSuccess = "/signup-success";
+  static String statistic = "/statistic";
+  static String bottomNavigationBar = "/bottom-navigation-bar";
+  static String addTransaction = "/transaction";
+  static String profile = "/profile";
+  static String detailTransaction = "/detail-transaction";
+  static String notification = "/notification";
+  static String myAccountList = "/my-account-list";
+  static String accountDetail = "/account-detail";
+  static String updateAccount = "/update-account";
 }

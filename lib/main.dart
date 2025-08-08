@@ -7,8 +7,13 @@ import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_strings.dart';
-import 'package:smart_expense/views/account/add_account.dart';
-import 'package:smart_expense/views/account/setup_account.dart';
+import 'package:smart_expense/views/screens/account/account_detail.dart';
+import 'package:smart_expense/views/screens/account/add_account.dart';
+import 'package:smart_expense/views/screens/account/my_account_list.dart';
+import 'package:smart_expense/views/screens/account/setup_account.dart';
+import 'package:smart_expense/views/pages/profile.dart';
+import 'package:smart_expense/views/screens/account/update_account.dart';
+import 'package:smart_expense/views/screens/add_transaction.dart';
 import 'package:smart_expense/views/auth/forgot_password.dart';
 import 'package:smart_expense/views/auth/forgot_password_sent.dart';
 import 'package:smart_expense/views/auth/login.dart';
@@ -17,13 +22,18 @@ import 'package:smart_expense/views/auth/setup_pin.dart';
 import 'package:smart_expense/views/auth/signup.dart';
 import 'package:smart_expense/views/auth/signup_success.dart';
 import 'package:smart_expense/views/auth/verification.dart';
-import 'package:smart_expense/views/home.dart';
+import 'package:smart_expense/views/components/ui/bottom_navigation_bar.dart';
+import 'package:smart_expense/views/pages/home.dart';
 import 'package:smart_expense/views/onboarding/splash.dart';
 import 'package:smart_expense/views/onboarding/wallkthrough.dart';
+import 'package:smart_expense/views/pages/statistic.dart';
+import 'package:smart_expense/views/screens/detail_transaction.dart';
+import 'package:smart_expense/views/screens/notification.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
+  // await Hive.deleteBoxFromDisk(AccountModel.accountBox);
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(CurrencyModelAdapter());
   Hive.registerAdapter(AccountTypeModelAdapter());
@@ -60,6 +70,16 @@ class MyApp extends StatelessWidget {
         AppRoutes.setUpAccount: (context) => const SetupAccountScreen(),
         AppRoutes.addAccount: (context) => const AddAccountScreen(),
         AppRoutes.signUpSuccess: (context) => const SignupSuccessScreen(),
+        AppRoutes.statistic: (context) => const StatisticScreen(),
+        AppRoutes.bottomNavigationBar:
+            (context) => BottomNavigationBarComponent(),
+        AppRoutes.addTransaction: (context) => AddTranSactionScreen(),
+        AppRoutes.profile: (context) => Profile(),
+        AppRoutes.detailTransaction: (context) => DetailTransaction(),
+        AppRoutes.notification: (context) => NotificationScreen(),
+        AppRoutes.myAccountList: (context) => MyAccountList(),
+        AppRoutes.accountDetail: (context) => AccountDetail(),
+        AppRoutes.updateAccount: (context) => UpdateAccount(),
       },
     );
   }

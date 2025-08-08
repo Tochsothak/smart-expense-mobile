@@ -12,6 +12,22 @@ class AccountService {
     return accountModel;
   }
 
+  static Future<AccountModel> getById(String id) async {
+    final accountBox = await Hive.openBox(AccountModel.accountBox);
+
+    final accountModel = await accountBox.get(id);
+    return accountModel as AccountModel;
+  }
+
+  static Future<bool> deleteById(String id) async {
+    final accountBox = await Hive.openBox(AccountModel.accountBox);
+    if (accountBox.containsKey(id)) {
+      await accountBox.delete(id);
+      return true;
+    }
+    return false;
+  }
+
   static Future<List<AccountModel>> createAccounts(List accounts) async {
     final accountBox = await Hive.openBox(AccountModel.accountBox);
     await accountBox.clear();
@@ -33,6 +49,14 @@ class AccountService {
     if (accountBox.isEmpty) return null;
     final accountModel = await accountBox.values.first;
     return accountModel as AccountModel;
+  }
+
+  static Future<List<AccountModel>?> getAll() async {
+    final accountListBox = await Hive.openBox(AccountModel.accountBox);
+    if (accountListBox.isEmpty) return null;
+    List<AccountModel> accountModels =
+        accountListBox.values.cast<AccountModel>().toList();
+    return accountModels;
   }
 
   static Future delete() async {

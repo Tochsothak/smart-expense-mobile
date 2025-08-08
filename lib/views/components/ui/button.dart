@@ -30,6 +30,8 @@ class _ButtonComponentState extends State<ButtonComponent> {
     ButtonType.primary: AppColours.primaryColour,
     ButtonType.secondary: AppColours.primaryColourLight,
     ButtonType.light: Colors.white,
+    ButtonType.expense: Colors.red.shade400,
+    ButtonType.income: Colors.green.shade400,
   };
 
   // Foreground Colors for difference button type
@@ -37,6 +39,8 @@ class _ButtonComponentState extends State<ButtonComponent> {
     ButtonType.primary: Colors.white,
     ButtonType.secondary: AppColours.primaryColour,
     ButtonType.light: Colors.black,
+    ButtonType.expense: Colors.white,
+    ButtonType.income: Colors.white,
   };
 
   // Border Colors
@@ -44,6 +48,8 @@ class _ButtonComponentState extends State<ButtonComponent> {
     ButtonType.primary: AppColours.primaryColour,
     ButtonType.secondary: AppColours.primaryColourLight,
     ButtonType.light: AppColours.light20.withAlpha(90),
+    ButtonType.expense: Colors.red.shade400,
+    ButtonType.income: Colors.green.shade400,
   };
   @override
   Widget build(BuildContext context) {
@@ -85,4 +91,4 @@ class _ButtonComponentState extends State<ButtonComponent> {
   }
 }
 
-enum ButtonType { primary, secondary, light }
+enum ButtonType { primary, secondary, light, expense, income }

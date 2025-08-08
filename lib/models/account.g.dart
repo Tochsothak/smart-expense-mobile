@@ -23,16 +23,23 @@ class AccountModelAdapter extends TypeAdapter<AccountModel> {
       ..initialBalanceText = fields[3] as String
       ..currentBalance = fields[4] as double
       ..currentBalanceText = fields[5] as String
-      ..colourCode = fields[6] as String?
-      ..active = fields[7] as int
-      ..currency = fields[8] as CurrencyModel
-      ..accountType = fields[9] as AccountTypeModel;
+      ..totalIncome = fields[6] as double?
+      ..totalIncomeText = fields[7] as String?
+      ..totalExpense = fields[8] as double?
+      ..totalExpenseText = fields[9] as String?
+      ..transactionCount = fields[10] as int?
+      ..incomeCount = fields[11] as int?
+      ..expenseCount = fields[12] as int?
+      ..colourCode = fields[13] as String?
+      ..active = fields[14] as int?
+      ..currency = fields[15] as CurrencyModel
+      ..accountType = fields[16] as AccountTypeModel;
   }
 
   @override
   void write(BinaryWriter writer, AccountModel obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -46,12 +53,26 @@ class AccountModelAdapter extends TypeAdapter<AccountModel> {
       ..writeByte(5)
       ..write(obj.currentBalanceText)
       ..writeByte(6)
-      ..write(obj.colourCode)
+      ..write(obj.totalIncome)
       ..writeByte(7)
-      ..write(obj.active)
+      ..write(obj.totalIncomeText)
       ..writeByte(8)
-      ..write(obj.currency)
+      ..write(obj.totalExpense)
       ..writeByte(9)
+      ..write(obj.totalExpenseText)
+      ..writeByte(10)
+      ..write(obj.transactionCount)
+      ..writeByte(11)
+      ..write(obj.incomeCount)
+      ..writeByte(12)
+      ..write(obj.expenseCount)
+      ..writeByte(13)
+      ..write(obj.colourCode)
+      ..writeByte(14)
+      ..write(obj.active)
+      ..writeByte(15)
+      ..write(obj.currency)
+      ..writeByte(16)
       ..write(obj.accountType);
   }
 

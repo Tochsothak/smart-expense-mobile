@@ -10,6 +10,7 @@ class Helper {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     return ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        behavior: SnackBarBehavior.floating,
         content: Text(message, style: AppStyles.snackBar()),
 
         backgroundColor:

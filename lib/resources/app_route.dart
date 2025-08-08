@@ -19,4 +19,6 @@ class AppRoutes {
   static String detailTransaction = "/detail-transaction";
   static String notification = "/notification";
   static String myAccountList = "/my-account-list";
+  static String accountDetail = "/account-detail";
+  static String updateAccount = "/update-account";
 }

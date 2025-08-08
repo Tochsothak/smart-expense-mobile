@@ -5,7 +5,7 @@ import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
-import 'package:smart_expense/views/account/my_account_list.dart';
+import 'package:smart_expense/views/screens/account/my_account_list.dart';
 import 'package:smart_expense/views/pages/home.dart';
 import 'package:smart_expense/views/pages/profile.dart';
 import 'package:smart_expense/views/pages/statistic.dart';
@@ -31,8 +31,7 @@ class _BottomNavigationBarComponentState
     ),
     NavigationItem(icon: Icons.person_outline, label: 'Profile'),
   ];
-  int currentIndex = 0;
-
+  int currentIndex = 1;
   @override
   Widget build(BuildContext context) {
     return Scaffold(

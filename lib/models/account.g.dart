@@ -31,7 +31,7 @@ class AccountModelAdapter extends TypeAdapter<AccountModel> {
       ..incomeCount = fields[11] as int?
       ..expenseCount = fields[12] as int?
       ..colourCode = fields[13] as String?
-      ..active = fields[14] as int
+      ..active = fields[14] as int?
       ..currency = fields[15] as CurrencyModel
       ..accountType = fields[16] as AccountTypeModel;
   }

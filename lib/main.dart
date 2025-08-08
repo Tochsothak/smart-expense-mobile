@@ -7,10 +7,12 @@ import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_strings.dart';
-import 'package:smart_expense/views/account/add_account.dart';
-import 'package:smart_expense/views/account/my_account_list.dart';
-import 'package:smart_expense/views/account/setup_account.dart';
+import 'package:smart_expense/views/screens/account/account_detail.dart';
+import 'package:smart_expense/views/screens/account/add_account.dart';
+import 'package:smart_expense/views/screens/account/my_account_list.dart';
+import 'package:smart_expense/views/screens/account/setup_account.dart';
 import 'package:smart_expense/views/pages/profile.dart';
+import 'package:smart_expense/views/screens/account/update_account.dart';
 import 'package:smart_expense/views/screens/add_transaction.dart';
 import 'package:smart_expense/views/auth/forgot_password.dart';
 import 'package:smart_expense/views/auth/forgot_password_sent.dart';
@@ -76,6 +78,8 @@ class MyApp extends StatelessWidget {
         AppRoutes.detailTransaction: (context) => DetailTransaction(),
         AppRoutes.notification: (context) => NotificationScreen(),
         AppRoutes.myAccountList: (context) => MyAccountList(),
+        AppRoutes.accountDetail: (context) => AccountDetail(),
+        AppRoutes.updateAccount: (context) => UpdateAccount(),
       },
     );
   }

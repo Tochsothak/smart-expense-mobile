@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:hive/hive.dart';
 import 'package:smart_expense/models/account_type.dart';
 import 'package:smart_expense/models/currency.dart';
@@ -49,7 +51,7 @@ class AccountModel {
   String? colourCode;
 
   @HiveField(14)
-  late int active;
+  int? active;
 
   @HiveField(15)
   late CurrencyModel currency;
@@ -72,13 +74,13 @@ class AccountModel {
     );
     accountModel.currentBalanceText = account['current_balance_text'];
     accountModel.colourCode = account['colour_code'];
-    accountModel.active = account['active'];
+    accountModel.active = int.parse(account['active'].toString());
     accountModel.currency = CurrencyModel.fromMap(account['currency']);
     accountModel.accountType = AccountTypeModel.fromMap(
       account['account_type'],
     );
     accountModel.totalIncome = double.parse(account['total_income'].toString());
-    accountModel.totalIncomeText = account['total_account_text'];
+    accountModel.totalIncomeText = account['total_income_text'];
     accountModel.totalExpense = double.parse(
       account['total_expense'].toString(),
     );

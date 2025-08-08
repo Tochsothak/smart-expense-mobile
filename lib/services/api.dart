@@ -37,6 +37,44 @@ class ApiService {
     return response;
   }
 
+  static Future<Response> patch(
+    String url,
+    Map<String, dynamic> params,
+    Map<String, dynamic> body,
+  ) async {
+    final user = await AuthService.get();
+    final response = dio.patch(
+      url,
+      queryParameters: params,
+      data: body,
+      options: Options(
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${user?.token}',
+        },
+      ),
+    );
+    return response;
+  }
+
+  static Future<Response> delete(
+    String url,
+    Map<String, dynamic> params,
+  ) async {
+    final user = await AuthService.get();
+    final response = dio.delete(
+      url,
+      queryParameters: params,
+      options: Options(
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ${user?.token}',
+        },
+      ),
+    );
+    return response;
+  }
+
   static String errorMessage(DioException dioException) {
     final internetErrors = [
       DioExceptionType.connectionError,

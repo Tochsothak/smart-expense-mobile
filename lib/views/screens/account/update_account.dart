@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:smart_expense/controllers/account.dart';
 import 'package:smart_expense/controllers/account_type.dart';
-import 'package:smart_expense/controllers/currency.dart';
+import 'package:smart_expense/models/account.dart';
 import 'package:smart_expense/models/account_type.dart';
-import 'package:smart_expense/models/currency.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
@@ -15,20 +14,24 @@ import 'package:smart_expense/views/components/form/select_input.dart';
 import 'package:smart_expense/views/components/form/text_input.dart';
 import 'package:smart_expense/views/components/ui/app_bar.dart';
 import 'package:smart_expense/views/components/ui/button.dart';
+import 'package:smart_expense/views/components/ui/indecator.dart';
 
-class AddAccountScreen extends StatefulWidget {
-  const AddAccountScreen({super.key});
+class UpdateAccount extends StatefulWidget {
+  const UpdateAccount({super.key});
 
   @override
-  State<AddAccountScreen> createState() => _AddAccountScreenState();
+  State<UpdateAccount> createState() => _UpdateAccountState();
 }
 
-@override
-class _AddAccountScreenState extends State<AddAccountScreen> {
-  CurrencyModel? selectedCurrency;
-  List<CurrencyModel> currencies = [];
+class _UpdateAccountState extends State<UpdateAccount> {
+  String? accountId;
+
+  String? selectedCurrency;
+
+  AccountModel? currentAccount;
 
   AccountTypeModel? selectedAccountType;
+
   List<AccountTypeModel> accountTypes = [];
 
   final _balanceEditingController = TextEditingController(text: '0');
@@ -39,16 +42,128 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = false;
+  bool _isInitializing = true;
+  @override
+  void dispose() {
+    super.dispose();
+    _balanceEditingController.dispose();
+    _nameEditingController.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (accountId == null) {
+      final arg = ModalRoute.of(context)!.settings.arguments;
+      if (arg != null && arg is String) {
+        accountId = arg;
+        _loadAccountData();
+        _loadAccountType();
+        print(accountId);
+      } else {
+        setState(() => _isInitializing = false);
+      }
+    }
+  }
+
+  _loadAccountData() async {
+    if (accountId == null) return;
+    setState(() => _isInitializing = true);
+
+    try {
+      final result = await AccountController.get({'id': accountId!});
+
+      if (result!.isSuccess && result.results != null) {
+        currentAccount = result.results;
+        _nameEditingController.text = currentAccount!.name;
+        _balanceEditingController.text =
+            currentAccount!.currentBalance.toString();
+
+        selectedAccountType = currentAccount?.accountType;
+        selectedCurrency = currentAccount?.currency.code.toString();
+        setState(() => _isInitializing = false);
+      }
+    } catch (e) {
+      Helper.snackBar(
+        context,
+        message: AppStrings.failedToLoadData.replaceAll(
+          ':data',
+          AppStrings.account,
+        ),
+        isSuccess: false,
+      );
+      setState(() => _isInitializing = false);
+    }
+  }
+
+  _handleUpdate(String id) async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final initialBalance = Helper.parseAmount(
+        _balanceEditingController.text.trim(),
+      );
+
+      setState(() {});
+      final result = await AccountController.update(
+        {'id': id},
+        selectedAccountType?.id ?? '',
+        _nameEditingController.text.trim(),
+        initialBalance,
+        1,
+      );
+
+      setState(() => _isLoading = false);
+
+      if (!result.isSuccess) {
+        Helper.snackBar(context, message: result.message, isSuccess: false);
+        return;
+      }
+      Helper.snackBar(
+        context,
+        message: AppStrings.dataUpdatedSuccess.replaceAll(
+          ':data',
+          AppStrings.account,
+        ),
+        isSuccess: true,
+      );
+
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.bottomNavigationBar,
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      Helper.snackBar(context, message: e.toString(), isSuccess: false);
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isInitializing) {
+      return Scaffold(
+        appBar: buildAppBar(
+          context,
+          AppStrings.updateAccount,
+          backgroundColor: AppColours.primaryColour,
+          foregroundColor: Colors.white,
+        ),
+        body: MyIndecator(),
+      );
+    }
     return GestureDetector(
       onTap: FocusScope.of(context).unfocus,
       child: Scaffold(
         backgroundColor: AppColours.primaryColour,
         appBar: buildAppBar(
           context,
-          AppStrings.addNewAccount,
+          AppStrings.updateAccount,
           backgroundColor: AppColours.primaryColour,
           foregroundColor: Colors.white,
         ),
@@ -56,7 +171,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              Padding(padding: EdgeInsets.all(24), child: _balanceForm()),
+              Padding(padding: EdgeInsets.all(24), child: _balanceForm('')),
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -77,7 +192,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
     );
   }
 
-  Widget _balanceForm() {
+  Widget _balanceForm(String currency) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +205,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         Row(
           children: [
             Text(
-              selectedCurrency?.code ?? '',
+              selectedCurrency ?? '',
               style: AppStyles.semibold(color: Colors.white, size: 64),
             ),
             AppSpacing.horizontal(size: 4),
@@ -146,20 +261,7 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
         SelectInputComponent(
           isEnabled: !_isLoading,
           isRequired: true,
-          label: AppStrings.currency,
-          searchBoxLabel: AppStrings.currency,
-          items: currencies,
-          compareFn: (item1, item2) => item1.isEqual(item2),
-          selectedItem: selectedCurrency,
-          showSearchBox: true,
-          onChanged: (CurrencyModel? value) {
-            setState(() => selectedCurrency = value);
-          },
-        ),
-        AppSpacing.vertical(),
-        SelectInputComponent(
-          isEnabled: !_isLoading,
-          isRequired: true,
+          selectedItem: selectedAccountType,
           label: AppStrings.accountType,
           searchBoxLabel: AppStrings.accountType,
           showSearchBox: true,
@@ -174,69 +276,20 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
           isLoading: _isLoading,
           label: AppStrings.continueText,
           onPressed: () {
-            _handleSubmit();
+            _handleUpdate(accountId!);
           },
         ),
-        AppSpacing.vertical(size: 80),
+        AppSpacing.vertical(size: 100),
       ],
     );
   }
 
-  _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final initialBalance = Helper.parseAmount(
-      _balanceEditingController.text.trim(),
-    );
-
-    final result = await AccountController.create(
-      initialBalance,
-      _nameEditingController.text.trim(),
-      selectedCurrency?.id ?? '',
-      selectedAccountType?.id ?? '',
-    );
-
-    setState(() => _isLoading = false);
-
-    if (!result.isSuccess) {
-      Helper.snackBar(context, message: result.message, isSuccess: false);
-      return;
-    }
-
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.signUpSuccess,
-      (Route<dynamic> route) => false,
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _initScreen();
-  }
-
-  _initScreen() {
-    _loadCurrencies();
-    _loadAccountTypes();
-  }
-
-  _loadCurrencies() async {
-    final result = await CurrencyController.load();
-
-    if (result.isSuccess && result.results != null) {
-      setState(() => currencies = result.results!);
-    }
-  }
-
-  _loadAccountTypes() async {
+  _loadAccountType() async {
     final result = await AccountTypeController.load();
-
     if (result.isSuccess && result.results != null) {
-      setState(() => accountTypes = result.results!);
+      setState(() {
+        accountTypes = result.results!;
+      });
     }
   }
 }

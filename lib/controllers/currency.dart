@@ -9,8 +9,17 @@ import 'package:smart_expense/services/currency.dart';
 class CurrencyController {
   static Future<Result<List<CurrencyModel>>> load() async {
     try {
-      final response = await ApiService.get(ApiRoutes.currencyUrl, {});
+      final currencyBoxList = await CurrencyService.getAll();
+      if (currencyBoxList != null) {
+        print("Currency found : $currencyBoxList");
+        return Result(
+          isSuccess: true,
+          results: currencyBoxList,
+          message: AppStrings.dataRetrievedSuccess,
+        );
+      }
 
+      final response = await ApiService.get(ApiRoutes.currencyUrl, {});
       final results = response.data['results'];
       final currencies = await CurrencyService.createCurrencies(
         results['currencies'],

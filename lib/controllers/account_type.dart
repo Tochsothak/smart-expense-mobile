@@ -9,10 +9,18 @@ import 'package:smart_expense/services/api_routes.dart';
 class AccountTypeController {
   static Future<Result<List<AccountTypeModel>>> load() async {
     try {
-      final response = await ApiService.get(ApiRoutes.accountTypeUrl, {});
+      final accountTypeBoxList = await AccountTypeService.getAll();
+      if (accountTypeBoxList != null) {
+        return Result(
+          isSuccess: true,
+          results: accountTypeBoxList,
+          message: AppStrings.dataRetrievedSuccess,
+        );
+      }
 
+      final response = await ApiService.get(ApiRoutes.accountTypeUrl, {});
       final results = response.data['results'];
-      final accountTypes = await AccountTypeService.createAccountType(
+      final accountTypes = await AccountTypeService.createAccountTypes(
         results['account_types'],
       );
       return Result(

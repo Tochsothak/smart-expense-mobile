@@ -47,32 +47,6 @@ class _ProfileState extends State<Profile> {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () {
-              Navigator.of(context).pushNamed(AppRoutes.myAccountList);
-            },
-            child: Row(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColours.primaryColourLight,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Icon(
-                      Icons.account_balance_wallet,
-                      color: AppColours.primaryColour,
-                      size: 30,
-                    ),
-                  ),
-                ),
-                AppSpacing.horizontal(size: 12),
-                Text(AppStrings.account, style: AppStyles.medium(size: 18)),
-              ],
-            ),
-          ),
-          SizedBox(child: Divider(height: 40, color: Colors.grey.shade300)),
-          GestureDetector(
             onTap: () {},
             child: Row(
               children: [

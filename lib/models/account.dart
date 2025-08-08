@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:hive/hive.dart';
 import 'package:smart_expense/models/account_type.dart';
 import 'package:smart_expense/models/currency.dart';

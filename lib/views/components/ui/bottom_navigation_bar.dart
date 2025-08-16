@@ -31,7 +31,7 @@ class _BottomNavigationBarComponentState
     ),
     NavigationItem(icon: Icons.person_outline, label: 'Profile'),
   ];
-  int currentIndex = 1;
+  int currentIndex = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -42,6 +42,11 @@ class _AccountDetailState extends State<AccountDetail> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
   Future<void> _getAccount(String accountId) async {
     try {
       setState(() {
@@ -80,9 +85,9 @@ class _AccountDetailState extends State<AccountDetail> {
 
   @override
   Widget build(BuildContext context) {
-    print(
-      "Build called - accountModel : $accountModel : isLoading : $_isLoading : error : $_error",
-    );
+    // print(
+    //   "Build called - accountModel : $accountModel : isLoading : $_isLoading : error : $_error",
+    // );
     return Scaffold(
       backgroundColor: AppColours.bgColor,
       appBar: buildAppBar(

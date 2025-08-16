@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:smart_expense/models/user.dart';
+import 'package:intl/intl.dart';
+import 'package:smart_expense/controllers/transaction.dart';
+import 'package:smart_expense/models/transaction.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
-import 'package:smart_expense/services/auth.dart';
+import 'package:smart_expense/utills/helper.dart';
 import 'package:smart_expense/views/components/ui/list_tile.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,27 +19,101 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  UserModel? user;
-
-  List monthly = [
-    "This month",
-    "Last month",
-    "Last 3 months",
-    "Last 6 months",
-    "Last 12 months",
-  ];
-
-  String? selectedItem;
+  List<TransactionModel> transactions = [];
+  Map<String, List<TransactionModel>> groupedTransactions = {};
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-
-    _getUser();
+    _initScreen();
   }
 
-  Future<void> _getUser() async {
-    user = await AuthService.get();
+  _initScreen() async {
+    setState(() => _isLoading = true);
+    final result = await TransactionController.load();
+    if (result.isSuccess && result.results != null) {
+      setState(() {
+        transactions = result.results!;
+        groupedTransactions = _groupTransactionsByDay(transactions);
+
+        _isLoading = false;
+      });
+      // print(result.results);
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // GroupTransaction By Days
+  Map<String, List<TransactionModel>> _groupTransactionsByDay(
+    List<TransactionModel> transactions,
+  ) {
+    Map<String, List<TransactionModel>> grouped = {};
+
+    for (var transaction in transactions) {
+      // Format date as key (e.g "2024-01-15")
+      String dateKey = DateFormat(
+        'yyy-MM-dd',
+      ).format(transaction.transactionDate);
+      if (grouped[dateKey] == null) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey]!.add(transaction);
+
+      // Sort each day's transactions by time (newes first)
+      grouped.forEach((key, value) {
+        value.sort((a, b) => b.transactionDate.compareTo(a.transactionDate));
+      });
+    }
+    return grouped;
+  }
+
+  // Get Formatted date to display
+  String _getFormattedDate(String dateKey) {
+    DateTime date = DateTime.parse(dateKey);
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime yesterday = today.subtract(Duration(days: 1));
+    DateTime transactionDate = DateTime(date.year, date.month, date.day);
+
+    if (transactionDate == today) {
+      return 'Today';
+    } else if (transactionDate == yesterday) {
+      return 'Yesterday';
+    } else {
+      return Helper.dateFormat(date);
+    }
+  }
+
+  // Calculate daily total
+  double _getDailyTotal(List<TransactionModel> dayTransactions) {
+    double total = 0;
+    for (var transaction in dayTransactions) {
+      if (transaction.type == 'income') {
+        total += transaction.amount;
+      } else {
+        total -= transaction.amount;
+      }
+    }
+    return total;
+  }
+
+  _handleDelete(String transactionId) async {
+    final result = await TransactionController.delete({'id': transactionId});
+    if (result.isSuccess) {
+      Helper.snackBar(
+        context,
+        message: AppStrings.dataDeleteSuccess.replaceAll(
+          ':data',
+          AppStrings.transaction,
+        ),
+        isSuccess: true,
+      );
+      _initScreen(); // Refresh
+    } else {
+      Helper.snackBar(context, message: result.message, isSuccess: false);
+    }
   }
 
   @override
@@ -73,7 +149,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: AppStyles.semibold(),
                     ),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        Helper.snackBar(
+                          context,
+                          message: "See all the transactions ",
+                          isSuccess: true,
+                        );
+                      },
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
@@ -95,48 +177,177 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return Slidable(
-                  endActionPane: ActionPane(
-                    motion: ScrollMotion(),
-                    children: [
-                      SlidableAction(
-                        foregroundColor: Colors.red.shade400,
-                        icon: Icons.delete,
-                        label: 'Delete',
-                        backgroundColor: Colors.red.shade50,
-
-                        onPressed: (value) {},
-                      ),
-
-                      SlidableAction(
-                        onPressed: (value) {},
-                        icon: Icons.edit,
-                        label: 'Edit',
-                        backgroundColor: Colors.blue.shade50,
-                        foregroundColor: Colors.blue.shade400,
-                      ),
-                    ],
+            if (_isLoading)
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: CircularProgressIndicator(
+                      color: AppColours.primaryColour,
+                    ),
                   ),
-                  child: ListTileComponent(
-                    onTap: () {
-                      Navigator.of(context).pushNamed(
-                        AppRoutes.detailTransaction,
-                        arguments: 'income',
-                      );
-                    },
-                    leadingIcon: Icons.fastfood,
-                    iconColor: Colors.red,
-                    title: 'Food And Drink',
-                    subtitle: 'Dinner at resturant with family',
-                    trailing: '\$50',
-                    trailingColor: Colors.green,
-                    subTraiLing: 'Today',
-                  ),
+                ),
+              ),
+
+            if (!_isLoading && groupedTransactions.isNotEmpty)
+              ...groupedTransactions.entries.map((entry) {
+                String dateKey = entry.key;
+                List<TransactionModel> dayTransactions = entry.value;
+                double dailyTotal = _getDailyTotal(dayTransactions);
+                return SliverList(
+                  // Date header with daily total
+                  delegate: SliverChildListDelegate([
+                    Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: 15 / 2,
+                        vertical: 8,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _getFormattedDate(dateKey),
+                            style: AppStyles.medium(size: 16),
+                          ),
+                          Text(
+                            dailyTotal >= 0
+                                ? '+\$${dailyTotal.toString()}'
+                                : '-\$${dailyTotal.abs().toStringAsFixed(2)}',
+                            style: AppStyles.semibold(
+                              size: 14,
+                              color:
+                                  dailyTotal >= 0
+                                      ? Colors.green.shade400
+                                      : Colors.red.shade400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    //Transaction for this day
+                    ...dayTransactions
+                        .map(
+                          (transaction) => Slidable(
+                            endActionPane: ActionPane(
+                              motion: ScrollMotion(),
+                              children: [
+                                SlidableAction(
+                                  foregroundColor: Colors.red.shade400,
+                                  icon: Icons.delete,
+                                  label: 'Delete',
+                                  backgroundColor: Colors.red.shade50,
+
+                                  onPressed: (context) {
+                                    _handleDelete(transaction.id);
+                                  },
+                                ),
+
+                                SlidableAction(
+                                  onPressed: (context) {
+                                    Navigator.of(context).pushNamed(
+                                      AppRoutes.updateTransaction,
+                                      arguments: {
+                                        'id': transaction.id,
+                                        'type': transaction.type,
+                                      },
+                                    );
+                                  },
+                                  icon: Icons.edit,
+                                  label: 'Edit',
+                                  backgroundColor: Colors.blue.shade50,
+                                  foregroundColor: Colors.blue.shade400,
+                                ),
+                              ],
+                            ),
+                            child: ListTileComponent(
+                              onTap: () {
+                                Navigator.of(context).pushNamed(
+                                  AppRoutes.detailTransaction,
+                                  arguments: {
+                                    'id': transaction.id,
+                                    'type': transaction.type,
+                                  },
+                                );
+                              },
+                              leadingIcon: Icon(
+                                Helper.transactionIcon[transaction
+                                    .category
+                                    .icon],
+                                color: Color(
+                                  int.parse(transaction.category.colourCode),
+                                ),
+                                size: 30,
+                              ),
+                              iconBackgroundColor: Color(
+                                int.parse(transaction.category.colourCode),
+                              ).withAlpha(50),
+                              title: transaction.description,
+                              subtitle: transaction.category.name,
+                              subTitleColor: Color(
+                                int.parse(transaction.category.colourCode),
+                              ),
+                              trailing:
+                                  transaction.type == 'income'
+                                      ? transaction.formattedAmountText
+                                      : "- ${transaction.formattedAmountText}",
+                              trailingColor:
+                                  transaction.type == 'income'
+                                      ? Colors.green
+                                      : Colors.red.shade400,
+                              subTraiLing: Helper.timeFormat(
+                                transaction.transactionDate,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    AppSpacing.vertical(size: 4),
+                  ]),
                 );
-              }, childCount: 100),
-            ),
+              }).toList(),
+
+            if (!_isLoading && groupedTransactions.isEmpty)
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.receipt_long,
+                          size: 64,
+                          color: Colors.grey.shade400,
+                        ),
+                        AppSpacing.vertical(size: 16),
+                        Text(
+                          AppStrings.noTransactionYet,
+                          style: AppStyles.semibold(
+                            size: 18,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          AppStrings.startTrackingYourExpenseAndIncome,
+                          style: AppStyles.regular1(
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -144,6 +355,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _head() {
+    // Calculate totals from transactions
+    double totalIncome = 0;
+    double totalExpense = 0;
+
+    for (var transaction in transactions) {
+      if (transaction.type == 'income') {
+        totalIncome += transaction.amount;
+      } else {
+        totalExpense += transaction.amount;
+      }
+    }
+    double accountBalance = totalIncome - totalExpense;
     return Stack(
       children: [
         Column(
@@ -203,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     children: [
                       Text(
-                        "\$ 2,955",
+                        "\$${accountBalance.toStringAsFixed(2)}",
                         style: AppStyles.title3(color: Colors.white, size: 24),
                       ),
                     ],
@@ -249,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                               Text(
-                                "\$ 10000",
+                                "\$${totalIncome.toStringAsFixed(2)}",
                                 style: AppStyles.medium(color: Colors.white),
                               ),
                             ],
@@ -294,7 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                               Text(
-                                "\$ 10000",
+                                "\$${totalExpense.toStringAsFixed(2)}",
                                 style: AppStyles.medium(color: Colors.white),
                               ),
                             ],

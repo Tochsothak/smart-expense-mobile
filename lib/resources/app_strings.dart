@@ -96,12 +96,15 @@ class AppStrings {
   static String incomeCount = "Income Count";
   static String expenseCount = "Expense Count";
   static String transactionCount = "Transaction Count";
+  static String transaction = "Transaction";
   static String initialBalance = "Initial Balance";
   static String currentBalance = "Current Balance";
   static String dataRetrievedSuccess = "Data retrieved successfully";
+  static String dataAddSuccess = ":data added successfully";
   static String updateAccount = "Update Account";
   static String failedToLoadData = "Failed to load :data";
   static String dataUpdatedSuccess = ":data update successfully";
+  static String failToupdateData = "Failed to update :data";
   static String deleteAccount = "Delete Account";
   static String areYouSureToDeleteAccount = "Are you sure to delete account ?";
   static String cancel = "Cancel";
@@ -110,4 +113,12 @@ class AppStrings {
   static String failToDeleteData = "Failed to delete :data";
   static String accountWallet = "Account Wallet";
   static String newA = "New >";
+  static String refresh = "Refresh";
+  static String date = "Date";
+  static String type = "Type";
+  static String note = "Notes";
+  static String referenceNumber = "Reference Number";
+  static String noTransactionYet = "No transactions yet ";
+  static String startTrackingYourExpenseAndIncome =
+      "Start tracking your expenses and income";
 }

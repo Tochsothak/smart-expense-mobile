@@ -1,40 +1,48 @@
 import 'package:dio/dio.dart';
-import 'package:smart_expense/models/account.dart';
 import 'package:smart_expense/models/result.dart';
+import 'package:smart_expense/models/transaction.dart';
 import 'package:smart_expense/resources/app_strings.dart';
-import 'package:smart_expense/services/account.dart';
 import 'package:smart_expense/services/api.dart';
 import 'package:smart_expense/services/api_routes.dart';
+import 'package:smart_expense/services/transaction.dart';
 
-class AccountController {
-  static Future<Result<AccountModel>> create(
-    double initialBalance,
-    String name,
-    String currency,
-    String accountType,
+class TransactionController {
+  static Future<Result<TransactionModel>> create(
+    String account,
+    double amount,
+    String category,
+    String description,
+    String type,
+    String transactionDate,
+    String notes,
   ) async {
     try {
-      final response = await ApiService.post(ApiRoutes.accountUrl, {
-        'account_type': accountType,
-        'currency': currency,
-        'name': name,
-        'initial_balance': initialBalance,
+      final response = await ApiService.post(ApiRoutes.transactionUrl, {
+        'account': account,
+        'amount': amount,
+        'category': category,
+        'description': description,
+        'type': type,
+        'transaction_date': transactionDate,
+        'notes': notes,
       });
       final results = response.data['results'];
 
-      final account = await AccountService.create(results['account']);
-
+      final transaction = await TransactionService.create(
+        results['transaction'],
+      );
+      print(transaction);
       return Result(
         isSuccess: true,
         message: response.data['message'],
-        results: account,
+        results: transaction,
       );
     } on DioException catch (e) {
       final message = ApiService.errorMessage(e);
       final errors = e.response?.data['errors'];
       return Result(isSuccess: false, message: message, errors: errors);
     } catch (e) {
-      // print(e);
+      print(e);
       return Result(
         isSuccess: false,
         message: AppStrings.anErrorOccurredTryAgain,
@@ -42,28 +50,30 @@ class AccountController {
     }
   }
 
-  static Future<Result<List<AccountModel>>> load() async {
+  static Future<Result<List<TransactionModel>>> load() async {
     try {
-      //Load accounts from hive
-      final accountsBox = await AccountService.getAll();
-      if (accountsBox != null) {
+      // Load accounts from hive
+      final transactionBox = await TransactionService.getAll();
+      if (transactionBox != null) {
         return Result(
           isSuccess: true,
-          results: accountsBox,
+          results: transactionBox,
           message: AppStrings.dataRetrievedSuccess,
         );
       }
 
-      final response = await ApiService.get(ApiRoutes.accountUrl, {});
+      final response = await ApiService.get(ApiRoutes.transactionUrl, {});
 
       final results = response.data['results'];
 
-      final accounts = await AccountService.createAccounts(results['accounts']);
+      final transactions = await TransactionService.createTransactions(
+        results['transactions'],
+      );
 
       return Result(
         isSuccess: true,
         message: response.data['message'],
-        results: accounts,
+        results: transactions,
       );
     } on DioException catch (e) {
       final errors = e.response?.data['errors'];
@@ -77,31 +87,31 @@ class AccountController {
     }
   }
 
-  static Future<Result<AccountModel>?> get(Map<String, dynamic> id) async {
+  static Future<Result<TransactionModel>?> get(Map<String, dynamic> id) async {
     try {
       // print("Getting account with ID: ${id['id']} from local storage");
-      // Get Account by id from local storage
-      final accountBox = await AccountService.getById(id['id']);
-      if (accountBox != null) {
+      // Get Transaction by id from local storage
+      final transactionBox = await TransactionService.getById(id['id']);
+      if (transactionBox != null) {
         // print("AccountB found in local storage: $accountBox");
         return Result(
           isSuccess: true,
-          results: accountBox,
+          results: transactionBox,
           message: AppStrings.dataRetrievedSuccess,
         );
       }
       //Get account from server
       final response = await ApiService.get(
-        "${ApiRoutes.accountUrl}/${id['id']}",
+        "${ApiRoutes.transactionUrl}/${id['id']}",
         id,
       );
       final result = response.data['results'];
-      final account = result['account'];
-      final accountModel = AccountModel.fromMap(account);
+      final transaction = result['transaction'];
+      final transactionModel = TransactionModel.fromMap(transaction);
       // print("Account from server : $accountModel");
       return Result(
         isSuccess: true,
-        results: accountModel,
+        results: transactionModel,
         message: response.data['message'],
       );
     } on DioException catch (e) {
@@ -116,28 +126,38 @@ class AccountController {
     }
   }
 
-  static Future<Result<AccountModel>> update(
+  static Future<Result<TransactionModel>> update(
     Map<String, dynamic> id,
-    String accountType,
-    String name,
-    double initialBalance,
+    String category,
+    String account,
+    String type,
+    double amount,
+    String description,
+    String notes,
+    String transactionDate,
     int active,
   ) async {
     try {
       final response =
-          await ApiService.patch("${ApiRoutes.accountUrl}/${id['id']}", {
-            'account_type': accountType,
-            'name': name,
-            'initial_balance': initialBalance,
+          await ApiService.patch("${ApiRoutes.transactionUrl}/${id['id']}", {
+            'category': category,
+            'account': account,
+            'type': type,
+            'amount': amount,
+            'description': description,
+            'notes': notes,
+            'transaction_date': transactionDate,
             'active': active,
           }, id);
       final results = response.data['results'];
-      final accountModel = await AccountService.create(results['account']);
-      print("AccountModel ${accountModel}");
-      print("Account ${results['account']}");
+      final transactionModel = await TransactionService.create(
+        results['transaction'],
+      );
+      // print("TransactionModel : ${transactionModel}");
+      // print("Transaction : ${results['transaction']}");
       return Result(
         isSuccess: true,
-        results: accountModel,
+        results: transactionModel,
         message: response.data['message'],
       );
     } on DioException catch (e) {
@@ -153,13 +173,15 @@ class AccountController {
     }
   }
 
-  static Future<Result> delete(Map<String, dynamic> id) async {
+  static Future<Result<TransactionModel>> delete(
+    Map<String, dynamic> id,
+  ) async {
     try {
       final response = await ApiService.delete(
-        "${ApiRoutes.accountUrl}/${id['id']}",
+        "${ApiRoutes.transactionUrl}/${id['id']}",
         id,
       );
-      await AccountService.deleteById(id['id']);
+      await TransactionService.deleteById(id['id']);
       final message = response.data['message'];
       return Result(isSuccess: true, message: message);
     } on DioException catch (e) {

@@ -108,7 +108,6 @@ class _UpdateAccountState extends State<UpdateAccount> {
         _balanceEditingController.text.trim(),
       );
 
-      setState(() {});
       final result = await AccountController.update(
         {'id': id},
         selectedAccountType?.id ?? '',
@@ -116,6 +115,8 @@ class _UpdateAccountState extends State<UpdateAccount> {
         initialBalance,
         1,
       );
+
+      print(result.results);
 
       setState(() => _isLoading = false);
 

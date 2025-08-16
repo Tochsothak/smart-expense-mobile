@@ -4,6 +4,7 @@ import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_styles.dart';
 
 class AccountTile extends StatefulWidget {
+  final Widget? icon;
   final String accountName;
   final String currency;
   final String currentBalance;
@@ -16,6 +17,7 @@ class AccountTile extends StatefulWidget {
     required this.currentBalance,
     required this.accountType,
     required this.onTap,
+    required this.icon,
   });
 
   @override
@@ -39,10 +41,13 @@ class _AccountTileState extends State<AccountTile> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Icon(
-                Icons.account_balance_wallet,
-                size: 50,
-                color: AppColours.primaryColour,
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade400.withAlpha(100),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: widget.icon,
               ),
               SizedBox(
                 height: 30,

@@ -6,6 +6,7 @@ import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
+import 'package:smart_expense/utills/helper.dart';
 import 'package:smart_expense/views/components/ui/account_tile.dart';
 import 'package:smart_expense/views/components/ui/indecator.dart';
 
@@ -22,6 +23,7 @@ class _MyAccountListState extends State<MyAccountList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColours.bgColor,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -59,23 +61,49 @@ class _MyAccountListState extends State<MyAccountList> {
             ),
             SliverToBoxAdapter(child: _header()),
             SliverToBoxAdapter(child: AppSpacing.vertical(size: 10)),
-            _isLoading
-                ? SliverToBoxAdapter(child: MyIndecator())
-                : SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    return AccountTile(
-                      onTap:
-                          () => Navigator.of(context).pushNamed(
-                            AppRoutes.accountDetail,
-                            arguments: accountModels[index].id,
-                          ),
-                      accountName: accountModels[index].name,
-                      currency: accountModels[index].currency.code,
-                      accountType: accountModels[index].accountType.name,
-                      currentBalance: accountModels[index].currentBalanceText,
-                    );
-                  }, childCount: accountModels.length),
+            if (_isLoading) SliverToBoxAdapter(child: MyIndecator()),
+            if (accountModels.isEmpty)
+              SliverToBoxAdapter(
+                child: Center(
+                  child: Column(
+                    children: [
+                      AppSpacing.vertical(size: 48),
+                      Text(
+                        "Account is empty!",
+                        style: AppStyles.regular1(color: AppColours.light20),
+                      ),
+                      AppSpacing.vertical(size: 4),
+                      TextButton(
+                        onPressed: _loadAccounts,
+                        child: Text(AppStrings.refresh),
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return AccountTile(
+                  onTap:
+                      () => Navigator.of(context).pushNamed(
+                        AppRoutes.accountDetail,
+                        arguments: accountModels[index].id,
+                      ),
+                  icon: Icon(
+                    Helper.accountTypeIcons[accountModels[index]
+                        .accountType
+                        .code],
+                    size: 30,
+                    color: AppColours.primaryColour,
+                  ),
+                  accountName: accountModels[index].name,
+                  currency: accountModels[index].currency.code,
+                  accountType: accountModels[index].accountType.name,
+                  currentBalance: accountModels[index].currentBalanceText,
+                );
+              }, childCount: accountModels.length),
+            ),
             SliverToBoxAdapter(child: AppSpacing.vertical()),
           ],
         ),

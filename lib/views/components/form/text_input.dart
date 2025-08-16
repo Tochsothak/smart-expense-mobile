@@ -14,6 +14,9 @@ class TextInputComponent extends StatefulWidget {
   final FocusNode? focusNode;
   final TextInputType? textInputType;
   final bool isEnabled;
+  final bool? readOnly;
+  final Icon? prefixIcon;
+  final VoidCallback? onTap;
   const TextInputComponent({
     super.key,
     required this.label,
@@ -26,6 +29,9 @@ class TextInputComponent extends StatefulWidget {
     this.textInputType,
     this.isRequired = false,
     this.isEnabled = true,
+    this.readOnly,
+    this.prefixIcon,
+    this.onTap,
   });
 
   @override
@@ -37,8 +43,10 @@ class _TextInputComponentState extends State<TextInputComponent> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      onTap: widget.onTap,
       controller: widget.textEditingController,
       enabled: widget.isEnabled,
+      readOnly: widget.readOnly ?? false,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       validator: (value) {
         if (!widget.isRequired) return null;
@@ -71,6 +79,7 @@ class _TextInputComponentState extends State<TextInputComponent> {
           borderRadius: BorderRadius.all(Radius.circular(16)),
           borderSide: BorderSide(color: AppColours.primaryColour),
         ),
+        prefixIcon: widget.prefixIcon,
         suffixIcon:
             widget.isPassword
                 ? IconButton(

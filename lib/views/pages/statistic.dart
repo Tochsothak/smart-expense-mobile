@@ -127,7 +127,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 return ListTileComponent(
-                  leadingIcon: Icons.restaurant,
+                  leadingIcon: Icon(Icons.access_alarm_outlined),
                   title: "Food And Drink",
                   subtitle: "Have a drink at Cafe shop",
                   subTraiLing: 'Today',

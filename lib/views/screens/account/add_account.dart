@@ -132,7 +132,6 @@ class _AddAccountScreenState extends State<AddAccountScreen> {
   Widget _detailForm() {
     return Column(
       children: [
-        AppSpacing.vertical(size: 16),
         TextInputComponent(
           isEnabled: !_isLoading,
           label: AppStrings.name,

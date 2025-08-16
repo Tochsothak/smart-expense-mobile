@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:smart_expense/models/account.dart';
 import 'package:smart_expense/models/account_type.dart';
+import 'package:smart_expense/models/category.dart';
 import 'package:smart_expense/models/currency.dart';
+import 'package:smart_expense/models/transaction.dart';
 import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
@@ -13,7 +15,7 @@ import 'package:smart_expense/views/screens/account/my_account_list.dart';
 import 'package:smart_expense/views/screens/account/setup_account.dart';
 import 'package:smart_expense/views/pages/profile.dart';
 import 'package:smart_expense/views/screens/account/update_account.dart';
-import 'package:smart_expense/views/screens/add_transaction.dart';
+import 'package:smart_expense/views/screens/transaction/add_transaction.dart';
 import 'package:smart_expense/views/auth/forgot_password.dart';
 import 'package:smart_expense/views/auth/forgot_password_sent.dart';
 import 'package:smart_expense/views/auth/login.dart';
@@ -27,8 +29,9 @@ import 'package:smart_expense/views/pages/home.dart';
 import 'package:smart_expense/views/onboarding/splash.dart';
 import 'package:smart_expense/views/onboarding/wallkthrough.dart';
 import 'package:smart_expense/views/pages/statistic.dart';
-import 'package:smart_expense/views/screens/detail_transaction.dart';
+import 'package:smart_expense/views/screens/transaction/detail_transaction.dart';
 import 'package:smart_expense/views/screens/notification.dart';
+import 'package:smart_expense/views/screens/transaction/update_transaction.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +41,8 @@ void main() async {
   Hive.registerAdapter(CurrencyModelAdapter());
   Hive.registerAdapter(AccountTypeModelAdapter());
   Hive.registerAdapter(AccountModelAdapter());
+  Hive.registerAdapter(CategoryModelAdapter());
+  Hive.registerAdapter(TransactionModelAdapter());
   runApp(const MyApp());
 }
 
@@ -80,6 +85,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.myAccountList: (context) => MyAccountList(),
         AppRoutes.accountDetail: (context) => AccountDetail(),
         AppRoutes.updateAccount: (context) => UpdateAccount(),
+        AppRoutes.updateTransaction: (context) => UpdateTransaction(),
       },
     );
   }

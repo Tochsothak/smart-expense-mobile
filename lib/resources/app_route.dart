@@ -21,4 +21,5 @@ class AppRoutes {
   static String myAccountList = "/my-account-list";
   static String accountDetail = "/account-detail";
   static String updateAccount = "/update-account";
+  static String updateTransaction = "/update-transaction";
 }

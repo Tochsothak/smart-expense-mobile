@@ -132,7 +132,7 @@ class _DetailTransactionState extends State<DetailTransaction> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.asset("assets/images/email.png", width: 200),
+              child: Image.asset("assets/images/logo.jpg", width: 200),
             ),
           ),
           AppSpacing.vertical(),
@@ -142,10 +142,13 @@ class _DetailTransactionState extends State<DetailTransaction> {
               Navigator.pushNamed(
                 context,
                 AppRoutes.updateTransaction,
-                arguments: {'id': transaction!.id, 'type': transaction!.type},
+                arguments: transaction as TransactionModel,
               );
             },
-            type: ButtonType.income,
+            type:
+                transaction!.type == 'income'
+                    ? ButtonType.income
+                    : ButtonType.expense,
           ),
           AppSpacing.vertical(size: 48),
         ],
@@ -155,8 +158,8 @@ class _DetailTransactionState extends State<DetailTransaction> {
 
   Container _main() {
     return Container(
+      padding: EdgeInsets.only(top: 15, left: 8, bottom: 8, right: 8),
       width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height / 9,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -173,13 +176,12 @@ class _DetailTransactionState extends State<DetailTransaction> {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-          children: [
-            _middle(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _middle(
               type == 'income' ? Colors.green.shade400 : Colors.red.shade400,
               type == 'income'
                   ? Colors.green.shade400.withAlpha(50)
@@ -188,30 +190,43 @@ class _DetailTransactionState extends State<DetailTransaction> {
               Icon(
                 type == 'income' ? Icons.arrow_downward : Icons.arrow_upward,
                 size: 20,
+                color:
+                    type == 'expense'
+                        ? Colors.red.shade400
+                        : Colors.green.shade400,
               ),
               AppStrings.type,
               type == 'income' ? AppStrings.income : AppStrings.expense,
+              type == 'expense'
+                  ? Colors.red.shade400.withAlpha(50)
+                  : Colors.green.shade400.withAlpha(50),
             ),
-            SizedBox(
-              height: 100,
-              child: VerticalDivider(color: Colors.grey.shade300),
-            ),
-            _middle(
+          ),
+          SizedBox(
+            height: 100,
+            child: VerticalDivider(color: Colors.grey.withAlpha(50)),
+          ),
+          Expanded(
+            child: _middle(
               Color(int.parse(transaction!.category.colourCode)),
               Color(int.parse(transaction!.category.colourCode)).withAlpha(50),
 
               Icon(
                 Helper.transactionIcon[transaction!.category.icon],
                 size: 20,
+                color: Color(int.parse(transaction!.category.colourCode)),
               ),
               AppStrings.category,
               transaction!.category.name,
+              Color(int.parse(transaction!.category.colourCode)).withAlpha(50),
             ),
-            SizedBox(
-              height: 100,
-              child: VerticalDivider(color: Colors.grey.shade300),
-            ),
-            _middle(
+          ),
+          SizedBox(
+            height: 100,
+            child: VerticalDivider(color: Colors.grey.withAlpha(50)),
+          ),
+          Expanded(
+            child: _middle(
               type == 'income' ? Colors.green.shade400 : Colors.red.shade400,
               type == 'income'
                   ? Colors.green.shade400.withAlpha(50)
@@ -220,44 +235,56 @@ class _DetailTransactionState extends State<DetailTransaction> {
               Icon(
                 Helper.accountTypeIcons[transaction!.account.accountType.code],
                 size: 20,
+                color: Colors.blue.shade400,
               ),
               AppStrings.account,
               transaction!.account.name,
+              Colors.blue.withAlpha(50),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Column _middle(
+  Widget _middle(
     Color color,
     Color backgroundColor,
     Widget icon,
     String title,
     String content,
+    Color? iconBackgroundColor,
   ) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              foregroundColor: color,
-              backgroundColor: backgroundColor,
-              radius: 15,
+            Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: iconBackgroundColor ?? Colors.blue.shade400,
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: icon,
             ),
-            AppSpacing.horizontal(size: 6),
+            AppSpacing.horizontal(size: 12),
             Text(
               title,
               style: AppStyles.medium(color: AppColours.light20, size: 14),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3,
             ),
           ],
         ),
-        Text(content, style: AppStyles.regular1()),
+        AppSpacing.vertical(size: 16),
+        Text(
+          content,
+          style: AppStyles.semibold(size: 14),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 5,
+          textAlign: TextAlign.start,
+        ),
       ],
     );
   }
@@ -296,7 +323,7 @@ class _DetailTransactionState extends State<DetailTransaction> {
             ],
           ),
           Text(
-            " ${Helper.dateFormat(transaction!.transactionDate)} (${Helper.timeFormat(transaction!.transactionDate)})",
+            " ${Helper.dateFormat(transaction!.transactionDate)} (${Helper.timeFormat(transaction!.createdAt.toString())})",
 
             style: AppStyles.medium(color: Colors.white),
           ),

@@ -14,7 +14,6 @@ import 'package:smart_expense/views/components/form/select_input.dart';
 import 'package:smart_expense/views/components/form/text_input.dart';
 import 'package:smart_expense/views/components/ui/app_bar.dart';
 import 'package:smart_expense/views/components/ui/button.dart';
-import 'package:smart_expense/views/components/ui/indecator.dart';
 
 class UpdateAccount extends StatefulWidget {
   const UpdateAccount({super.key});
@@ -42,7 +41,6 @@ class _UpdateAccountState extends State<UpdateAccount> {
   final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = false;
-  bool _isInitializing = true;
   @override
   void dispose() {
     super.dispose();
@@ -55,45 +53,21 @@ class _UpdateAccountState extends State<UpdateAccount> {
     super.didChangeDependencies();
     if (accountId == null) {
       final arg = ModalRoute.of(context)!.settings.arguments;
-      if (arg != null && arg is String) {
-        accountId = arg;
+      if (arg != null && arg is AccountModel) {
+        accountId = arg.id;
+        currentAccount = arg;
         _loadAccountData();
         _loadAccountType();
         print(accountId);
-      } else {
-        setState(() => _isInitializing = false);
       }
     }
   }
 
-  _loadAccountData() async {
-    if (accountId == null) return;
-    setState(() => _isInitializing = true);
-
-    try {
-      final result = await AccountController.get({'id': accountId!});
-
-      if (result!.isSuccess && result.results != null) {
-        currentAccount = result.results;
-        _nameEditingController.text = currentAccount!.name;
-        _balanceEditingController.text =
-            currentAccount!.currentBalance.toString();
-
-        selectedAccountType = currentAccount?.accountType;
-        selectedCurrency = currentAccount?.currency.code.toString();
-        setState(() => _isInitializing = false);
-      }
-    } catch (e) {
-      Helper.snackBar(
-        context,
-        message: AppStrings.failedToLoadData.replaceAll(
-          ':data',
-          AppStrings.account,
-        ),
-        isSuccess: false,
-      );
-      setState(() => _isInitializing = false);
-    }
+  _loadAccountData() {
+    _nameEditingController.text = currentAccount!.name;
+    _balanceEditingController.text = currentAccount!.currentBalance.toString();
+    selectedAccountType = currentAccount?.accountType;
+    selectedCurrency = currentAccount?.currency.code.toString();
   }
 
   _handleUpdate(String id) async {
@@ -147,17 +121,6 @@ class _UpdateAccountState extends State<UpdateAccount> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isInitializing) {
-      return Scaffold(
-        appBar: buildAppBar(
-          context,
-          AppStrings.updateAccount,
-          backgroundColor: AppColours.primaryColour,
-          foregroundColor: Colors.white,
-        ),
-        body: MyIndecator(),
-      );
-    }
     return GestureDetector(
       onTap: FocusScope.of(context).unfocus,
       child: Scaffold(
@@ -173,6 +136,7 @@ class _UpdateAccountState extends State<UpdateAccount> {
           child: ListView(
             children: [
               Padding(padding: EdgeInsets.all(24), child: _balanceForm('')),
+
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -181,6 +145,7 @@ class _UpdateAccountState extends State<UpdateAccount> {
                     topRight: Radius.circular(24),
                   ),
                 ),
+
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: _detailForm(),
@@ -198,7 +163,7 @@ class _UpdateAccountState extends State<UpdateAccount> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppSpacing.vertical(size: MediaQuery.of(context).size.height / 5),
+        AppSpacing.vertical(size: MediaQuery.of(context).size.height / 8),
         Text(
           AppStrings.balance,
           style: AppStyles.semibold(color: Colors.white.withAlpha(200)),
@@ -272,7 +237,7 @@ class _UpdateAccountState extends State<UpdateAccount> {
             setState(() => selectedAccountType = value);
           },
         ),
-        AppSpacing.vertical(),
+        AppSpacing.vertical(size: MediaQuery.of(context).size.height / 4),
         ButtonComponent(
           isLoading: _isLoading,
           label: AppStrings.continueText,
@@ -280,7 +245,6 @@ class _UpdateAccountState extends State<UpdateAccount> {
             _handleUpdate(accountId!);
           },
         ),
-        AppSpacing.vertical(size: 100),
       ],
     );
   }

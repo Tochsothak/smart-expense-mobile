@@ -54,21 +54,29 @@ class _AccountTileState extends State<AccountTile> {
                 child: VerticalDivider(color: Colors.grey.shade300),
               ),
 
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.accountName, style: AppStyles.medium(size: 18)),
-                  AppSpacing.vertical(size: 6),
-                  Text(
-                    widget.currency,
-                    style: AppStyles.regular1(
-                      color: AppColours.light20,
-                      size: 12,
+              Expanded(
+                flex: 50,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.accountName,
+                      style: AppStyles.medium(size: 18),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                    overflow: TextOverflow.clip,
-                    maxLines: 1,
-                  ),
-                ],
+                    AppSpacing.vertical(size: 6),
+                    Text(
+                      widget.currency,
+                      style: AppStyles.regular1(
+                        color: AppColours.light20,
+                        size: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
               ),
               Spacer(),
               Column(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 
@@ -28,44 +29,57 @@ class _TypeToggleState extends State<TypeToggle> {
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
-        padding: EdgeInsets.all(3),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColours.light20.withAlpha(50)),
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            GestureDetector(
-              // onTap: widget.expenseTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: widget.expenseBackgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            Expanded(
+              child: GestureDetector(
+                // onTap: widget.expenseTap,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: widget.expenseBackgroundColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
+                    ),
+                  ),
 
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Text(
-                    AppStrings.expense,
-                    style: widget.expenseTextStyle,
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Text(
+                      AppStrings.expense,
+                      style: widget.expenseTextStyle,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),
             ),
 
-            AppSpacing.horizontal(size: 3),
-            GestureDetector(
-              // onTap: widget.incomeTap,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: widget.incomeBackgroundColor,
-                ),
-
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Text(AppStrings.income, style: widget.incomeTextStyle),
+            Expanded(
+              child: GestureDetector(
+                // onTap: widget.incomeTap,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(12),
+                      bottomRight: Radius.circular(12),
+                    ),
+                    color: widget.incomeBackgroundColor,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Text(
+                      AppStrings.income,
+                      style: widget.incomeTextStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -85,9 +85,6 @@ class _AccountDetailState extends State<AccountDetail> {
 
   @override
   Widget build(BuildContext context) {
-    // print(
-    //   "Build called - accountModel : $accountModel : isLoading : $_isLoading : error : $_error",
-    // );
     return Scaffold(
       backgroundColor: AppColours.bgColor,
       appBar: buildAppBar(
@@ -96,7 +93,12 @@ class _AccountDetailState extends State<AccountDetail> {
         foregroundColor: Colors.white,
         backgroundColor: AppColours.primaryColour,
       ),
-      body: _buildBody(),
+      body: SingleChildScrollView(
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height,
+          child: _buildBody(),
+        ),
+      ),
     );
   }
 
@@ -106,78 +108,71 @@ class _AccountDetailState extends State<AccountDetail> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-            AppSpacing.vertical(size: 16),
-            Text(
-              _error!,
-              style: AppStyles.regular1(color: Colors.red.shade400),
-              textAlign: TextAlign.center,
-            ),
-            AppSpacing.vertical(size: 16),
-            ButtonComponent(
-              width: MediaQuery.of(context).size.width / 2,
-              type: ButtonType.light,
-              label: 'Retry',
-              onPressed: () {
-                if (id != null) {
-                  _getAccount(id!);
-                }
-              },
-            ),
-          ],
-        ),
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+          AppSpacing.vertical(size: 16),
+          Text(
+            _error!,
+            style: AppStyles.regular1(color: Colors.red.shade400),
+            textAlign: TextAlign.center,
+          ),
+          AppSpacing.vertical(size: 16),
+          ButtonComponent(
+            width: MediaQuery.of(context).size.width / 2,
+            type: ButtonType.light,
+            label: 'Retry',
+            onPressed: () {
+              if (id != null) {
+                _getAccount(id!);
+              }
+            },
+          ),
+        ],
       );
     }
     if (accountModel == null) {
       return const Center(child: const Text("No account data available"));
     }
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              _header(),
-              Positioned(
-                top: 180,
-                left: MediaQuery.of(context).size.width / 1.1 / 2 - 167,
-                child: _body(),
-              ),
-              Positioned(
-                top: 145,
-                left: 70,
-                child: IconButton(
-                  onPressed: _showDialog,
-                  icon: CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.red.shade400,
-                    foregroundColor: Colors.white,
-                    child: Icon(Icons.delete, size: 40),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 145,
-                right: 70,
-                child: IconButton(
-                  onPressed: () {
-                    Navigator.of(
-                      context,
-                    ).pushNamed(AppRoutes.updateAccount, arguments: id);
-                  },
-                  icon: CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.green.shade400,
-                    foregroundColor: Colors.white,
-                    child: Icon(Icons.edit, size: 40),
-                  ),
-                ),
-              ),
-            ],
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _header(),
+        Positioned(
+          top: 180,
+          left: MediaQuery.of(context).size.width / 1.1 / 2 - 167,
+          child: _body(),
+        ),
+        Positioned(
+          top: 145,
+          left: 70,
+          child: IconButton(
+            onPressed: _showDialog,
+            icon: CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.red.shade400,
+              foregroundColor: Colors.white,
+              child: Icon(Icons.delete, size: 40),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 145,
+          right: 70,
+          child: IconButton(
+            onPressed: () {
+              Navigator.of(context).pushNamed(
+                AppRoutes.updateAccount,
+                arguments: accountModel as AccountModel,
+              );
+            },
+            icon: CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.green.shade400,
+              foregroundColor: Colors.white,
+              child: Icon(Icons.edit, size: 40),
+            ),
           ),
         ),
       ],
@@ -257,7 +252,7 @@ class _AccountDetailState extends State<AccountDetail> {
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: Column(
           children: [
-            AppSpacing.vertical(size: 90),
+            AppSpacing.vertical(size: 48),
             _buildRow(AppStrings.name, accountModel?.name),
             SizedBox(child: Divider(color: Colors.grey.shade300)),
             _buildRow(AppStrings.accountType, accountModel?.accountType.name),
@@ -295,18 +290,25 @@ class _AccountDetailState extends State<AccountDetail> {
   Row _buildRow(String label, String? value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label, style: AppStyles.regular1(color: AppColours.light20)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Text(":"),
+        Expanded(
+          flex: 1,
+          child: Text(
+            label,
+            style: AppStyles.regular1(color: AppColours.light20),
+          ),
+        ),
+        SizedBox(
+          height: 50,
+          child: VerticalDivider(color: Colors.grey.withAlpha(50)),
         ),
         Expanded(
           child: Text(
             value ?? "Cash",
             style: AppStyles.regular1(color: AppColours.light20),
             overflow: TextOverflow.ellipsis,
-            maxLines: 1,
+            maxLines: 3,
           ),
         ),
       ],
@@ -315,7 +317,7 @@ class _AccountDetailState extends State<AccountDetail> {
 
   Widget _header() {
     return Container(
-      height: 300,
+      height: 250,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColours.primaryColour,
@@ -352,7 +354,7 @@ class _AccountDetailState extends State<AccountDetail> {
               ),
             ),
             SizedBox(
-              height: double.infinity,
+              height: 20,
               child: VerticalDivider(
                 thickness: 5,
                 color: Colors.grey.shade100.withAlpha(800),

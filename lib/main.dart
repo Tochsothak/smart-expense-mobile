@@ -29,6 +29,7 @@ import 'package:smart_expense/views/pages/home.dart';
 import 'package:smart_expense/views/onboarding/splash.dart';
 import 'package:smart_expense/views/onboarding/wallkthrough.dart';
 import 'package:smart_expense/views/pages/statistic.dart';
+import 'package:smart_expense/views/screens/transaction/all_transaction.dart';
 import 'package:smart_expense/views/screens/transaction/detail_transaction.dart';
 import 'package:smart_expense/views/screens/notification.dart';
 import 'package:smart_expense/views/screens/transaction/update_transaction.dart';
@@ -36,7 +37,7 @@ import 'package:smart_expense/views/screens/transaction/update_transaction.dart'
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  // await Hive.deleteBoxFromDisk(AccountModel.accountBox);
+  // await Hive.deleteBoxFromDisk(TransactionModel.transactionBox);
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(CurrencyModelAdapter());
   Hive.registerAdapter(AccountTypeModelAdapter());
@@ -86,6 +87,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.accountDetail: (context) => AccountDetail(),
         AppRoutes.updateAccount: (context) => UpdateAccount(),
         AppRoutes.updateTransaction: (context) => UpdateTransaction(),
+        AppRoutes.allTransactions: (context) => AllTransactions(),
       },
     );
   }

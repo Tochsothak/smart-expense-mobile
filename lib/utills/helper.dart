@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_styles.dart';
 import 'package:smart_expense/services/account.dart';
@@ -49,9 +50,52 @@ class Helper {
     return formattedDate;
   }
 
-  static timeFormat(DateTime date) {
-    String formattedTime = DateFormat('h:mm a').format(date);
-    return formattedTime;
+  static String timeFormat(String time) {
+    DateTime transactionTime = DateTime.parse(time);
+    DateTime now = DateTime.now();
+    // If it's midnight  (day-only date)
+
+    //Calculate time
+    Duration deference = now.difference(transactionTime);
+
+    if (deference.inMinutes < 1) {
+      return "Just now";
+    } else if (deference.inHours < 1) {
+      return "${deference.inMinutes}m ago";
+    } else if (deference.inDays < 1 - deference.inHours + 1) {
+      return "${deference.inHours}h ago";
+    }
+    return DateFormat('hh:mm a').format(transactionTime);
+  }
+
+  static String greeting() {
+    DateTime now = DateTime.now();
+
+    if (now.hour >= 5 && now.hour < 12) {
+      return "Good Morning";
+    } else if (now.hour >= 12 && now.hour < 18) {
+      return "Good Afternoon";
+    } else {
+      return "Good Evening";
+    }
+  }
+
+  static String getPeriodTitle(int index) {
+    DateTime now = DateTime.now();
+    switch (index) {
+      case 0:
+        return DateFormat('EEEE, MMM dd').format(now);
+      case 1:
+        DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
+        return '${DateFormat('MMM dd').format(startOfWeek)} - ${DateFormat('MMM dd').format(endOfWeek)}';
+      case 2:
+        return DateFormat('MMMM yyyy').format(now);
+      case 3:
+        return DateFormat('yyyy').format(now);
+      default:
+        return DateFormat('MMMM yyy').format(now);
+    }
   }
 
   static Map<String, IconData> transactionIcon = {

@@ -3,11 +3,13 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_expense/controllers/transaction.dart';
 import 'package:smart_expense/models/transaction.dart';
+import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
+import 'package:smart_expense/services/auth.dart';
 import 'package:smart_expense/utills/helper.dart';
 import 'package:smart_expense/views/components/ui/list_tile.dart';
 
@@ -23,10 +25,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, List<TransactionModel>> groupedTransactions = {};
   bool _isLoading = false;
 
+  UserModel? user;
+
   @override
   void initState() {
     super.initState();
     _initScreen();
+    _getUser();
+  }
+
+  _getUser() async {
+    final currentUser = await AuthService.get();
+    if (currentUser != null) {
+      setState(() => user = currentUser);
+    }
   }
 
   _initScreen() async {
@@ -148,28 +160,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       AppStrings.recentTransactions,
                       style: AppStyles.semibold(),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Helper.snackBar(
+                    TextButton(
+                      style: ButtonStyle(),
+                      onPressed: () {
+                        Navigator.of(
                           context,
-                          message: "See all the transactions ",
-                          isSuccess: true,
-                        );
+                        ).pushNamed(AppRoutes.allTransactions);
                       },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: AppColours.primaryColourLight,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 15,
-                            vertical: 6,
-                          ),
-                          child: Text(
-                            'See all',
-                            style: AppStyles.regular1(size: 14),
-                          ),
+                      child: Text(
+                        AppStrings.seeAll,
+                        style: AppStyles.semibold().copyWith(
+                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ),
@@ -197,27 +198,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 return SliverList(
                   // Date header with daily total
                   delegate: SliverChildListDelegate([
-                    Container(
-                      margin: EdgeInsets.symmetric(
-                        horizontal: 15 / 2,
-                        vertical: 8,
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 15,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             _getFormattedDate(dateKey),
-                            style: AppStyles.medium(size: 16),
+                            style: AppStyles.medium(
+                              size: 16,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
+
                           Text(
                             dailyTotal >= 0
                                 ? '+\$${dailyTotal.toString()}'
@@ -234,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     //Transaction for this day
+                    AppSpacing.vertical(size: 12),
                     ...dayTransactions
                         .map(
                           (transaction) => Slidable(
@@ -255,10 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onPressed: (context) {
                                     Navigator.of(context).pushNamed(
                                       AppRoutes.updateTransaction,
-                                      arguments: {
-                                        'id': transaction.id,
-                                        'type': transaction.type,
-                                      },
+                                      arguments: transaction,
                                     );
                                   },
                                   icon: Icons.edit,
@@ -304,13 +295,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? Colors.green
                                       : Colors.red.shade400,
                               subTraiLing: Helper.timeFormat(
-                                transaction.transactionDate,
+                                transaction.createdAt!,
                               ),
                             ),
                           ),
                         )
                         .toList(),
-                    AppSpacing.vertical(size: 4),
+                    AppSpacing.vertical(size: 16),
                   ]),
                 );
               }).toList(),
@@ -566,11 +557,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Good Afternoon!",
+                    Helper.greeting(),
                     style: AppStyles.medium(color: Colors.white),
                   ),
                   Text(
-                    "Sothak",
+                    user?.name ?? '',
                     style: AppStyles.regular1(color: Colors.white, size: 12),
                   ),
                 ],

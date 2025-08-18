@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_styles.dart';
@@ -108,23 +107,23 @@ class _ListTileComponentState extends State<ListTileComponent> {
               ),
             ),
           ),
-          Positioned(
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(12),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(3),
-                child: Text(
-                  widget.time ?? '',
-                  style: AppStyles.regular1(size: 8, color: AppColours.light20),
-                ),
-              ),
-            ),
-          ),
+          // Positioned(
+          //   right: 24,
+          //   top: 30,
+          //   child: Container(
+          //     decoration: BoxDecoration(
+          //       borderRadius: BorderRadius.circular(4),
+          //       color: Colors.grey.shade200,
+          //     ),
+          //     child: Padding(
+          //       padding: const EdgeInsets.all(1.5),
+          //       child: Text(
+          //         widget.time ?? '',
+          //         style: AppStyles.regular1(size: 8, color: Colors.black),
+          //       ),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );

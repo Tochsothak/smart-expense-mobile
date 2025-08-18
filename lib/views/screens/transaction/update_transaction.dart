@@ -27,9 +27,7 @@ class UpdateTransaction extends StatefulWidget {
 }
 
 class _UpdateTransactionState extends State<UpdateTransaction> {
-  String? type;
-  List types = ['income', 'expense'];
-  String? id;
+  String? transactionId;
 
   final _formKey = GlobalKey<FormState>();
   final _amountEditingController = TextEditingController();
@@ -49,7 +47,7 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
 
   AccountModel? selectedAccount;
   CategoryModel? selectedCategory;
-  // String? selectedType;
+
   List<BottomSheetItem> bottomSheetItem = [
     BottomSheetItem(
       text: AppStrings.camera,
@@ -75,16 +73,15 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
   ];
 
   bool _isLoading = false;
-  bool _initializing = false;
 
   @override
   void dispose() {
     super.dispose();
-
     _amountEditingController.dispose();
     _textEditingDescriptionController.dispose();
     _textEditingNoteController.dispose();
     _textEditingDateTimeController.dispose();
+
     _balanceFocus.dispose();
     _descriptionFocus.dispose();
     _noteFocus.dispose();
@@ -94,30 +91,16 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final arg =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    id = arg['id'] as String;
-    type = arg['type'] as String;
-    _initScreen();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // _initScreen();
-  }
-
-  _initScreen() async {
-    setState(() => _initializing = true);
-    await Future.wait(
-      [
-            _loadTransactionData(id!),
-            _loadAccount(),
-            _loadCategory(),
-            setState(() => _initializing = false),
-          ]
-          as Iterable<Future>,
-    );
+    final arg = ModalRoute.of(context)!.settings.arguments;
+    if (transactionId == null) {
+      if (arg != null && arg is TransactionModel) {
+        transactionId = arg.id;
+        transaction = arg;
+        _getPreviousData();
+        _loadAccount();
+        _loadCategory();
+      }
+    }
   }
 
   _loadAccount() async {
@@ -134,73 +117,32 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
     }
   }
 
-  _loadTransactionData(String id) async {
-    try {
-      final result = await TransactionController.get({'id': id});
-      if (result!.isSuccess && result.results != null) {
-        transaction = result.results;
-        selectedAccount = transaction!.account;
-        selectedCategory = transaction!.category;
-        // type = transaction!.type;
-        _textEditingDescriptionController.text = transaction!.description;
-        _textEditingNoteController.text = transaction!.notes ?? '';
-        _textEditingDateTimeController.text = Helper.dateFormat(
-          transaction!.transactionDate,
-        );
-        _amountEditingController.text = transaction!.amount.toString();
-      }
-    } catch (e) {
-      Helper.snackBar(
-        context,
-        message: AppStrings.failedToLoadData.replaceAll(
-          ':data',
-          AppStrings.transaction,
-        ),
-        isSuccess: false,
-      );
-    }
-  }
-
-  _clearForm() {
-    _amountEditingController.clear();
-    _textEditingDescriptionController.clear();
-    _textEditingNoteController.clear();
-    _textEditingDateTimeController.clear();
-    setState(() {
-      selectedAccount = null;
-      selectedCategory = null;
-    });
+  _getPreviousData() {
+    _amountEditingController.text = transaction?.amount.toString() ?? '';
+    _textEditingDescriptionController.text = transaction?.description ?? '';
+    _textEditingNoteController.text = transaction?.notes ?? '';
+    _textEditingDateTimeController.text = Helper.dateFormat(
+      transaction!.transactionDate,
+    );
+    selectedAccount = transaction?.account;
+    selectedCategory = transaction?.category;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_initializing) {
-      return Scaffold(
-        backgroundColor: AppColours.bgColor,
-        appBar: buildAppBar(
-          context,
-          type == 'expense' ? AppStrings.addExpense : AppStrings.addIncome,
-          backgroundColor:
-              type == 'expense' ? Colors.red.shade400 : Colors.green.shade400,
-          foregroundColor: Colors.white,
-        ),
-        body: Center(
-          child: CircularProgressIndicator(
-            color:
-                type == 'expense' ? Colors.red.shade400 : Colors.green.shade400,
-          ),
-        ),
-      );
-    }
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         backgroundColor: AppColours.bgColor,
         appBar: buildAppBar(
           context,
-          type == 'expense' ? AppStrings.addExpense : AppStrings.addIncome,
+          transaction?.type == 'expense'
+              ? AppStrings.updateExpense
+              : AppStrings.updateIncome,
           backgroundColor:
-              type == 'expense' ? Colors.red.shade400 : Colors.green.shade400,
+              transaction?.type == 'expense'
+                  ? Colors.red.shade400
+                  : Colors.green.shade400,
           foregroundColor: Colors.white,
         ),
         body: SingleChildScrollView(
@@ -224,7 +166,7 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
   Container _detailForm() {
     return Container(
       width: MediaQuery.of(context).size.width / 1.1,
-      height: MediaQuery.of(context).size.height / 1.3,
+      height: 750,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -242,13 +184,47 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
         child: Column(
           children: [
             AppSpacing.vertical(),
+            TypeToggle(
+              onTap: () {
+                if (transaction?.type == 'expense') {
+                  setState(() => transaction?.type = 'income');
+                } else if (transaction?.type == 'income') {
+                  setState(() => transaction?.type = 'expense');
+                }
+              },
+              expenseBackgroundColor:
+                  transaction?.type == 'expense'
+                      ? Colors.red.shade400
+                      : Colors.transparent,
+              incomeBackgroundColor:
+                  transaction?.type == 'income'
+                      ? Colors.green.shade400
+                      : Colors.transparent,
+              expenseTextStyle: AppStyles.medium(
+                color:
+                    transaction?.type == 'expense'
+                        ? Colors.white
+                        : AppColours.light20,
+                size: transaction?.type == 'expense' ? 16 : 12,
+              ),
+              incomeTextStyle: AppStyles.medium(
+                color:
+                    transaction?.type == 'income'
+                        ? Colors.white
+                        : AppColours.light20,
+                size: transaction?.type == 'income' ? 16 : 12,
+              ),
+            ),
+            AppSpacing.vertical(),
             SelectInputComponent(
               isRequired: true,
               isEnabled: !_isLoading,
               label: AppStrings.wallet,
+              showSearchBox: true,
+              searchBoxLabel: AppStrings.searchAccount,
               items: accounts,
               selectedItem: selectedAccount,
-              compareFn: (p0, p1) => p0 == p1,
+              compareFn: (item1, item2) => item1.isEqual(item2),
               onChanged: (AccountModel? value) {
                 setState(() => selectedAccount = value);
               },
@@ -257,10 +233,12 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
             SelectInputComponent(
               isRequired: true,
               isEnabled: !_isLoading,
+              showSearchBox: true,
+              searchBoxLabel: AppStrings.searchCategory,
               label: AppStrings.category,
               items: categories,
               selectedItem: selectedCategory,
-              compareFn: (p0, p1) => p0 == p1,
+              compareFn: (item1, item2) => item1.isEqual(item2),
               onChanged: (CategoryModel? value) {
                 setState(() => selectedCategory = value);
               },
@@ -325,9 +303,12 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
             ButtonComponent(
               isLoading: _isLoading,
               label: AppStrings.continueText,
-              type: type == 'expense' ? ButtonType.expense : ButtonType.income,
+              type:
+                  transaction?.type == 'expense'
+                      ? ButtonType.expense
+                      : ButtonType.income,
               onPressed: () {
-                _handleSubmit(id!);
+                _handleSubmit(transaction!.id);
               },
             ),
             AppSpacing.vertical(),
@@ -345,7 +326,9 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
           height: MediaQuery.of(context).size.width / 1.5,
           decoration: BoxDecoration(
             color:
-                type == 'expense' ? Colors.red.shade400 : Colors.green.shade400,
+                transaction?.type == 'expense'
+                    ? Colors.red.shade400
+                    : Colors.green.shade400,
             borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(24),
               bottomRight: Radius.circular(24),
@@ -358,47 +341,9 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppSpacing.vertical(size: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      AppStrings.amount,
-                      style: AppStyles.semibold(
-                        color: Colors.white.withAlpha(200),
-                      ),
-                    ),
-                    TypeToggle(
-                      onTap: () {
-                        if (type == 'expense') {
-                          setState(() => type = 'income');
-                        } else if (type == 'income') {
-                          setState(() => type = 'expense');
-                        }
-                      },
-                      expenseBackgroundColor:
-                          type == 'expense'
-                              ? Colors.red.shade400
-                              : Colors.transparent,
-                      incomeBackgroundColor:
-                          type == 'income'
-                              ? Colors.green.shade400
-                              : Colors.transparent,
-                      expenseTextStyle: AppStyles.medium(
-                        color:
-                            type == 'expense'
-                                ? Colors.white
-                                : AppColours.light20,
-                        size: type == 'expense' ? 16 : 12,
-                      ),
-                      incomeTextStyle: AppStyles.medium(
-                        color:
-                            type == 'income'
-                                ? Colors.white
-                                : AppColours.light20,
-                        size: type == 'income' ? 16 : 12,
-                      ),
-                    ),
-                  ],
+                Text(
+                  AppStrings.amount,
+                  style: AppStyles.semibold(color: Colors.white.withAlpha(200)),
                 ),
                 Row(
                   children: [
@@ -459,7 +404,7 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
       initialDate: DateTime.now(),
     );
     if (pickDate != null) {
-      _textEditingDateTimeController.text = pickDate.toString().split(" ")[0];
+      _textEditingDateTimeController.text = Helper.dateFormat(pickDate);
     }
     return pickDate;
   }
@@ -472,7 +417,7 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
             height: 150,
             decoration: BoxDecoration(
               color:
-                  type == 'expense'
+                  transaction?.type == 'expense'
                       ? Colors.red.shade400
                       : Colors.green.shade400,
               borderRadius: BorderRadius.only(
@@ -505,7 +450,7 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
                               Icon(
                                 b.icon,
                                 color:
-                                    type == 'expense'
+                                    transaction?.type == 'expense'
                                         ? Colors.red.shade400
                                         : Colors.green.shade400,
                                 size: 50,
@@ -514,7 +459,7 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
                                 b.text,
                                 style: AppStyles.medium(
                                   color:
-                                      type == 'expense'
+                                      transaction?.type == 'expense'
                                           ? Colors.red.shade400
                                           : Colors.green.shade400,
                                 ),
@@ -542,34 +487,31 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
       );
       return;
     }
-
     setState(() => _isLoading = true);
-
-    final amount = Helper.parseAmount(_amountEditingController.text.trim());
-
     final result = await TransactionController.update(
       {'id': id},
-      selectedCategory?.id ?? '',
-      selectedAccount?.id ?? '',
-      type!,
-      amount,
-      _textEditingDescriptionController.text.trim(),
+      selectedCategory?.id ??
+          transaction!.category.id, // use new if chosen, else old
+      selectedAccount?.id ?? transaction!.account.id, // same
+      transaction?.type ?? transaction!.type, // NEW: track type properly
+      _amountEditingController.text.isNotEmpty
+          ? Helper.parseAmount(_amountEditingController.text.trim())
+          : transaction!.amount, // fallback to old if empty
+      _textEditingDescriptionController.text.isNotEmpty
+          ? _textEditingDescriptionController.text.trim()
+          : transaction!.description,
       _textEditingNoteController.text.trim(),
-      _textEditingDateTimeController.text,
+      _textEditingDateTimeController.text.trim(),
+
       1,
     );
-
     // print("Result : ${result.results}");
-
     setState(() => _isLoading = false);
 
     if (!result.isSuccess) {
       Helper.snackBar(context, message: result.message, isSuccess: false);
       return;
     }
-
-    _clearForm();
-
     Helper.snackBar(
       context,
       isSuccess: true,
@@ -578,7 +520,6 @@ class _UpdateTransactionState extends State<UpdateTransaction> {
         AppStrings.transaction,
       ),
     );
-
     Navigator.of(context).pushNamedAndRemoveUntil(
       AppRoutes.bottomNavigationBar,
       (Route<dynamic> route) => false,

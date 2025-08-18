@@ -66,6 +66,7 @@ class AppStrings {
   static String expense = "Expense";
   static String statistic = "Statistics";
   static String topSpending = "Top Spending";
+  static String topIncome = "Top Income";
   static String adding = "Adding";
   static String recentTransactions = "Recent Transactions";
   static String addExpense = "Add Expense";
@@ -121,4 +122,11 @@ class AppStrings {
   static String noTransactionYet = "No transactions yet ";
   static String startTrackingYourExpenseAndIncome =
       "Start tracking your expenses and income";
+  static String seeAll = "See All";
+  static String allTransactions = "All transactions";
+  static String searchAccount = "Search Account";
+  static String searchCategory = "Search Category";
+  static String updateExpense = "Update Expense";
+  static String updateIncome = "Update Income";
+  static String noDataForThisPeriod = "No data for this period";
 }

@@ -26,7 +26,7 @@ class AddTranSactionScreen extends StatefulWidget {
 }
 
 class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
-  String type = '';
+  String? type;
 
   final _formKey = GlobalKey<FormState>();
   final _amountEditingController = TextEditingController();
@@ -48,9 +48,6 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
   CategoryModel? selectedCategory;
 
   bool _isLoading = false;
-  bool _initializing = false;
-
-  bool? _toggleType;
 
   List<BottomSheetItem> bottomSheetItem = [
     BottomSheetItem(
@@ -93,44 +90,22 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)!.settings.arguments as String;
-    type = args;
-    _initScreen();
+    final arg = ModalRoute.of(context)!.settings.arguments;
+    if (type == null) {
+      if (arg != null && arg is String) {
+        type = arg;
+        _initScreen();
+      }
+    }
   }
 
-  _initScreen() async {
-    setState(() => _initializing = true);
-    await Future.wait(
-      [_loadAccounts(), _loadCategory(), _initializing = false]
-          as Iterable<Future>,
-    );
-  }
-
-  @override
-  void initState() {
-    super.initState();
+  _initScreen() {
+    _loadAccounts();
+    _loadCategory();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_initializing) {
-      return Scaffold(
-        backgroundColor: AppColours.bgColor,
-        appBar: buildAppBar(
-          context,
-          type == 'expense' ? AppStrings.addExpense : AppStrings.addIncome,
-          backgroundColor:
-              type == 'expense' ? Colors.red.shade400 : Colors.green.shade400,
-          foregroundColor: Colors.white,
-        ),
-        body: Center(
-          child: CircularProgressIndicator(
-            color:
-                type == 'expense' ? Colors.red.shade400 : Colors.green.shade400,
-          ),
-        ),
-      );
-    }
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
@@ -163,7 +138,7 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
   Container _detailForm() {
     return Container(
       width: MediaQuery.of(context).size.width / 1.1,
-      height: MediaQuery.of(context).size.height / 1.3,
+      height: 750,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -181,12 +156,36 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
         child: Column(
           children: [
             AppSpacing.vertical(),
+            TypeToggle(
+              onTap: () {
+                if (type == 'expense') {
+                  setState(() => type = 'income');
+                } else if (type == 'income') {
+                  setState(() => type = 'expense');
+                }
+              },
+              expenseBackgroundColor:
+                  type == 'expense' ? Colors.red.shade400 : Colors.transparent,
+              incomeBackgroundColor:
+                  type == 'income' ? Colors.green.shade400 : Colors.transparent,
+              expenseTextStyle: AppStyles.medium(
+                color: type == 'expense' ? Colors.white : AppColours.light20,
+                size: type == 'expense' ? 16 : 12,
+              ),
+              incomeTextStyle: AppStyles.medium(
+                color: type == 'income' ? Colors.white : AppColours.light20,
+                size: type == 'income' ? 16 : 12,
+              ),
+            ),
+            AppSpacing.vertical(),
             SelectInputComponent(
               isRequired: true,
               isEnabled: !_isLoading,
               label: AppStrings.wallet,
               items: accounts,
               selectedItem: selectedAccount,
+              showSearchBox: true,
+              searchBoxLabel: AppStrings.searchAccount,
               compareFn: (p0, p1) => p0 == p1,
               onChanged: (AccountModel? value) {
                 setState(() => selectedAccount = value);
@@ -197,6 +196,8 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
               isRequired: true,
               isEnabled: !_isLoading,
               label: AppStrings.category,
+              showSearchBox: true,
+              searchBoxLabel: AppStrings.searchCategory,
               items: categories,
               selectedItem: selectedCategory,
               compareFn: (p0, p1) => p0 == p1,
@@ -378,47 +379,9 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppSpacing.vertical(size: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      AppStrings.amount,
-                      style: AppStyles.semibold(
-                        color: Colors.white.withAlpha(200),
-                      ),
-                    ),
-                    TypeToggle(
-                      onTap: () {
-                        if (type == 'expense') {
-                          setState(() => type = 'income');
-                        } else if (type == 'income') {
-                          setState(() => type = 'expense');
-                        }
-                      },
-                      expenseBackgroundColor:
-                          type == 'expense'
-                              ? Colors.red.shade400
-                              : Colors.transparent,
-                      incomeBackgroundColor:
-                          type == 'income'
-                              ? Colors.green.shade400
-                              : Colors.transparent,
-                      expenseTextStyle: AppStyles.medium(
-                        color:
-                            type == 'expense'
-                                ? Colors.white
-                                : AppColours.light20,
-                        size: type == 'expense' ? 16 : 12,
-                      ),
-                      incomeTextStyle: AppStyles.medium(
-                        color:
-                            type == 'income'
-                                ? Colors.white
-                                : AppColours.light20,
-                        size: type == 'income' ? 16 : 12,
-                      ),
-                    ),
-                  ],
+                Text(
+                  AppStrings.amount,
+                  style: AppStyles.semibold(color: Colors.white.withAlpha(200)),
                 ),
                 Row(
                   children: [
@@ -505,7 +468,7 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
       amount,
       selectedCategory?.id ?? '',
       _textEditingDescriptionController.text.trim(),
-      type,
+      type!,
       _textEditingDateTimeController.text,
       _textEditingNoteController.text.trim(),
     );

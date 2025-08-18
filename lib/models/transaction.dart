@@ -42,6 +42,12 @@ class TransactionModel {
   @HiveField(11)
   late CategoryModel category;
 
+  @HiveField(12)
+  late String? createdAt;
+
+  @HiveField(13)
+  late String? updatedAt;
+
   static String transactionBox = "transactions";
 
   static fromMap(Map<String, dynamic> transactions) {
@@ -58,6 +64,8 @@ class TransactionModel {
     transactionModel.transactionDate = DateTime.parse(
       transactions['transaction_date'],
     );
+    transactionModel.createdAt = transactions['created_at'];
+    transactionModel.updatedAt = transactions['updated_at'];
     transactionModel.category = CategoryModel.fromMap(transactions['category']);
     transactionModel.account = AccountModel.fromMap(transactions['account']);
 

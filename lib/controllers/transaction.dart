@@ -51,30 +51,36 @@ class TransactionController {
   }
 
   static Future<Result<List<TransactionModel>>> load() async {
+    // Load accounts from hive
+    final transactionBox = await TransactionService.getAll();
+    if (transactionBox != null) {
+      return Result(
+        isSuccess: true,
+        results: transactionBox,
+        message: AppStrings.dataRetrievedSuccess,
+      );
+    }
     try {
-      // Load accounts from hive
-      final transactionBox = await TransactionService.getAll();
-      if (transactionBox != null) {
+      final response = await ApiService.get(ApiRoutes.transactionUrl, {});
+      if (response.statusCode == 200) {
+        final results = response.data['results'];
+
+        final transactions = await TransactionService.createTransactions(
+          results['transactions'],
+        );
+
+        return Result(
+          isSuccess: true,
+          message: response.data['message'],
+          results: transactions,
+        );
+      } else {
         return Result(
           isSuccess: true,
           results: transactionBox,
           message: AppStrings.dataRetrievedSuccess,
         );
       }
-
-      final response = await ApiService.get(ApiRoutes.transactionUrl, {});
-
-      final results = response.data['results'];
-
-      final transactions = await TransactionService.createTransactions(
-        results['transactions'],
-      );
-
-      return Result(
-        isSuccess: true,
-        message: response.data['message'],
-        results: transactions,
-      );
     } on DioException catch (e) {
       final errors = e.response?.data['errors'];
       final message = ApiService.errorMessage(e);
@@ -88,32 +94,40 @@ class TransactionController {
   }
 
   static Future<Result<TransactionModel>?> get(Map<String, dynamic> id) async {
+    // print("Getting account with ID: ${id['id']} from local storage");
+    // Get Transaction by id from local storage
+    final transactionBox = await TransactionService.getById(id['id']);
+    if (transactionBox != null) {
+      // print("AccountB found in local storage: $accountBox");
+      return Result(
+        isSuccess: true,
+        results: transactionBox,
+        message: AppStrings.dataRetrievedSuccess,
+      );
+    }
     try {
-      // print("Getting account with ID: ${id['id']} from local storage");
-      // Get Transaction by id from local storage
-      final transactionBox = await TransactionService.getById(id['id']);
-      if (transactionBox != null) {
-        // print("AccountB found in local storage: $accountBox");
+      //Get account from server
+      final response = await ApiService.get(
+        "${ApiRoutes.transactionUrl}/${id['id']}",
+        id,
+      );
+      if (response.statusCode == 200) {
+        final result = response.data['results'];
+        final transaction = result['transaction'];
+        final transactionModel = TransactionModel.fromMap(transaction);
+        // print("Account from server : $accountModel");
+        return Result(
+          isSuccess: true,
+          results: transactionModel,
+          message: response.data['message'],
+        );
+      } else {
         return Result(
           isSuccess: true,
           results: transactionBox,
           message: AppStrings.dataRetrievedSuccess,
         );
       }
-      //Get account from server
-      final response = await ApiService.get(
-        "${ApiRoutes.transactionUrl}/${id['id']}",
-        id,
-      );
-      final result = response.data['results'];
-      final transaction = result['transaction'];
-      final transactionModel = TransactionModel.fromMap(transaction);
-      // print("Account from server : $accountModel");
-      return Result(
-        isSuccess: true,
-        results: transactionModel,
-        message: response.data['message'],
-      );
     } on DioException catch (e) {
       final errors = e.response?.data['errors'];
       final message = ApiService.errorMessage(e);

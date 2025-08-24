@@ -11,7 +11,7 @@ import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/views/screens/account/account_detail.dart';
 import 'package:smart_expense/views/screens/account/add_account.dart';
-import 'package:smart_expense/views/screens/account/my_account_list.dart';
+import 'package:smart_expense/views/pages/my_account_list.dart';
 import 'package:smart_expense/views/screens/account/setup_account.dart';
 import 'package:smart_expense/views/pages/profile.dart';
 import 'package:smart_expense/views/screens/account/update_account.dart';
@@ -37,7 +37,7 @@ import 'package:smart_expense/views/screens/transaction/update_transaction.dart'
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  // await Hive.deleteBoxFromDisk(TransactionModel.transactionBox);
+  // await Hive.deleteBoxFromDisk(AccountModel.accountBox);
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(CurrencyModelAdapter());
   Hive.registerAdapter(AccountTypeModelAdapter());

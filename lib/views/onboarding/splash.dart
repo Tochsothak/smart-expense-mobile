@@ -21,15 +21,10 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: Padding(
           padding: EdgeInsets.all(4),
-          child: Column(
-            children: [
-              Image.asset("assets/images/logo.jpg", width: 200),
-              Text(
-                AppStrings.appName,
-                style: AppStyles.titleX(size: 40, color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-            ],
+          child: Text(
+            AppStrings.appName,
+            style: AppStyles.titleX(size: 40, color: Colors.white),
+            textAlign: TextAlign.center,
           ),
         ),
       ),

@@ -12,7 +12,7 @@ class AccountService {
     return accountModel;
   }
 
-  static Future<AccountModel> getById(String id) async {
+  static Future<AccountModel?> getById(String id) async {
     final accountBox = await Hive.openBox(AccountModel.accountBox);
 
     final accountModel = await accountBox.get(id);

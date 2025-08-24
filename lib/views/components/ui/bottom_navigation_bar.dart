@@ -5,7 +5,7 @@ import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
-import 'package:smart_expense/views/screens/account/my_account_list.dart';
+import 'package:smart_expense/views/pages/my_account_list.dart';
 import 'package:smart_expense/views/pages/home.dart';
 import 'package:smart_expense/views/pages/profile.dart';
 import 'package:smart_expense/views/pages/statistic.dart';
@@ -27,7 +27,7 @@ class _BottomNavigationBarComponentState
     NavigationItem(icon: Icons.bar_chart_outlined, label: 'Analytics'),
     NavigationItem(
       icon: Icons.account_balance_wallet_outlined,
-      label: 'Wallet',
+      label: 'Account',
     ),
     NavigationItem(icon: Icons.person_outline, label: 'Profile'),
   ];

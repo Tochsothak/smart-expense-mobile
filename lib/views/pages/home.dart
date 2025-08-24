@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
+import 'package:smart_expense/controllers/account.dart';
+import 'package:smart_expense/controllers/currency.dart';
 import 'package:smart_expense/controllers/transaction.dart';
+import 'package:smart_expense/models/account.dart';
+import 'package:smart_expense/models/currency.dart';
 import 'package:smart_expense/models/transaction.dart';
 import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
@@ -11,6 +15,8 @@ import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
 import 'package:smart_expense/services/auth.dart';
 import 'package:smart_expense/utills/helper.dart';
+import 'package:smart_expense/views/components/ui/account_tile.dart';
+
 import 'package:smart_expense/views/components/ui/list_tile.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,39 +28,139 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<TransactionModel> transactions = [];
-  Map<String, List<TransactionModel>> groupedTransactions = {};
+  Map<String, List<TransactionModel>> dayTransactions = {};
+  List<AccountModel> accounts = [];
+  List<CurrencyModel> currencies = [];
+  // String baseCurrency = 'USD';
+  CurrencyModel? selectedCurrency;
+  double? totalAmount;
+  double? totalIncome;
+  double? totalExpense;
   bool _isLoading = false;
-
+  bool _showConvertedAmounts = true; // Toggle for showing converted vs original
   UserModel? user;
+
+  List<Map<String, double>> convertedAccounts = [];
 
   @override
   void initState() {
     super.initState();
     _initScreen();
+  }
+
+  _initScreen() async {
+    await _loadCurrency();
+
+    if (currencies.isNotEmpty) {
+      selectedCurrency = currencies.firstWhere(
+        (c) => c.code == 'USD',
+        orElse:
+            () => currencies.firstWhere(
+              (c) => c.code == 'KHR',
+              orElse: () => currencies.first,
+            ),
+      );
+    }
+    await _loadAccounts(); // Await here to ensure conversion are done before UI build
     _getUser();
+    _loadTransactions();
   }
 
   _getUser() async {
     final currentUser = await AuthService.get();
     if (currentUser != null) {
-      setState(() => user = currentUser);
+      setState(() {
+        user = currentUser;
+      });
     }
   }
 
-  _initScreen() async {
+  _loadCurrency() async {
+    setState(() => _isLoading = true);
+    final result = await CurrencyController.load();
+    if (result.isSuccess && result.results != null) {
+      setState(() {
+        currencies = result.results!;
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  _loadAccounts() async {
+    setState(() => _isLoading = true);
+    final result = await AccountController.load();
+    if (result.isSuccess && result.results != null) {
+      accounts = result.results!;
+      // Convert all account value to base currency once
+      convertedAccounts.clear();
+      for (var account in accounts) {
+        double balance = account.currentBalance;
+        double income = account.totalIncome ?? 0;
+        double expense = account.totalExpense ?? 0;
+        if (account.currency.code != selectedCurrency!.code) {
+          balance = await Helper.convertAmount(
+            balance,
+            account.currency.code,
+            selectedCurrency?.code ?? '',
+          );
+          income = await Helper.convertAmount(
+            income,
+            account.currency.code,
+            selectedCurrency?.code ?? '',
+          );
+          expense = await Helper.convertAmount(
+            expense,
+            account.currency.code,
+            selectedCurrency?.code ?? '',
+          );
+        }
+
+        convertedAccounts.add({
+          'balance': balance,
+          'income': income,
+          'expense': expense,
+        });
+      }
+      _getTotalAmount();
+      setState(() => _isLoading = false);
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  _loadTransactions() async {
     setState(() => _isLoading = true);
     final result = await TransactionController.load();
     if (result.isSuccess && result.results != null) {
       setState(() {
         transactions = result.results!;
-        groupedTransactions = _groupTransactionsByDay(transactions);
-
+        dayTransactions = _groupTransactionsByDay(transactions);
         _isLoading = false;
       });
       // print(result.results);
     } else {
       setState(() => _isLoading = false);
     }
+  }
+
+  // Calculate total converted amounts
+  _getTotalAmount() async {
+    double total = 0;
+    double income = 0;
+    double expense = 0;
+
+    for (var converted in convertedAccounts) {
+      total += converted['balance']!;
+      income += converted['income']!;
+      expense += converted['expense']!;
+    }
+    setState(() {
+      totalAmount = total;
+      totalExpense = expense;
+      totalIncome = income;
+    });
   }
 
   // GroupTransaction By Days
@@ -73,7 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       grouped[dateKey]!.add(transaction);
 
-      // Sort each day's transactions by time (newes first)
+      // Sort each day's transactions by time (newest first)
       grouped.forEach((key, value) {
         value.sort((a, b) => b.transactionDate.compareTo(a.transactionDate));
       });
@@ -81,31 +187,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return grouped;
   }
 
-  // Get Formatted date to display
-  String _getFormattedDate(String dateKey) {
-    DateTime date = DateTime.parse(dateKey);
-    DateTime now = DateTime.now();
-    DateTime today = DateTime(now.year, now.month, now.day);
-    DateTime yesterday = today.subtract(Duration(days: 1));
-    DateTime transactionDate = DateTime(date.year, date.month, date.day);
-
-    if (transactionDate == today) {
-      return 'Today';
-    } else if (transactionDate == yesterday) {
-      return 'Yesterday';
-    } else {
-      return Helper.dateFormat(date);
-    }
-  }
-
-  // Calculate daily total
-  double _getDailyTotal(List<TransactionModel> dayTransactions) {
+  // Calculate daily total with currency conversion
+  Future<double> _getDailyTotal(List<TransactionModel> dayTransactions) async {
     double total = 0;
     for (var transaction in dayTransactions) {
+      double transactionAmount = transaction.amount;
+      if (_showConvertedAmounts &&
+          transaction.account.currency.code != selectedCurrency?.code) {
+        double amount = await Helper.convertAmount(
+          transactionAmount,
+          transaction.account.currency.code,
+          selectedCurrency?.code ?? '',
+        );
+        transactionAmount = amount;
+      }
       if (transaction.type == 'income') {
-        total += transaction.amount;
+        total += transactionAmount;
       } else {
-        total -= transaction.amount;
+        total -= transactionAmount;
       }
     }
     return total;
@@ -143,15 +242,17 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: MediaQuery.of(context).size.height / 4,
+                height: MediaQuery.of(context).size.height / 3.9,
                 child: _head(),
               ),
             ),
+            //Account Summaries Section
+            SliverToBoxAdapter(child: _accountSummariesSection()),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 15,
-                  vertical: 10,
+                  vertical: 8,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -160,17 +261,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       AppStrings.recentTransactions,
                       style: AppStyles.semibold(),
                     ),
-                    TextButton(
-                      style: ButtonStyle(),
-                      onPressed: () {
-                        Navigator.of(
-                          context,
-                        ).pushNamed(AppRoutes.allTransactions);
-                      },
-                      child: Text(
-                        AppStrings.seeAll,
-                        style: AppStyles.semibold().copyWith(
-                          decoration: TextDecoration.underline,
+                    GestureDetector(
+                      onTap:
+                          () => Navigator.of(
+                            context,
+                          ).pushNamed(AppRoutes.allTransactions),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColours.primaryColourLight,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          AppStrings.seeAll,
+                          style: AppStyles.regular1(size: 12),
                         ),
                       ),
                     ),
@@ -178,9 +285,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+
+            //Loading Indicator
             if (_isLoading)
               SliverToBoxAdapter(
                 child: Center(
+                  heightFactor: 3,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: CircularProgressIndicator(
@@ -189,124 +299,131 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-
-            if (!_isLoading && groupedTransactions.isNotEmpty)
-              ...groupedTransactions.entries.map((entry) {
+            // Grouped transactions
+            if (!_isLoading && dayTransactions.isNotEmpty)
+              ...dayTransactions.entries.map((entry) {
                 String dateKey = entry.key;
                 List<TransactionModel> dayTransactions = entry.value;
-                double dailyTotal = _getDailyTotal(dayTransactions);
+
                 return SliverList(
-                  // Date header with daily total
+                  // Date header
                   delegate: SliverChildListDelegate([
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 0,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            _getFormattedDate(dateKey),
+                            Helper.getFormattedDate(dateKey),
                             style: AppStyles.medium(
                               size: 16,
                               color: Colors.grey.shade600,
                             ),
                           ),
-
-                          Text(
-                            dailyTotal >= 0
-                                ? '+\$${dailyTotal.toString()}'
-                                : '-\$${dailyTotal.abs().toStringAsFixed(2)}',
-                            style: AppStyles.semibold(
-                              size: 14,
-                              color:
+                          FutureBuilder<double>(
+                            future: _getDailyTotal(dayTransactions),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                double dailyTotal = snapshot.data!;
+                                return Text(
                                   dailyTotal >= 0
-                                      ? Colors.green.shade400
-                                      : Colors.red.shade400,
-                            ),
+                                      ? '+ ${Helper.formatCurrency(dailyTotal, selectedCurrency?.symbol ?? '', compact: true, symbolPosition: selectedCurrency?.symbolPosition ?? '')}'
+                                      : '- ${Helper.formatCurrency(dailyTotal.abs(), selectedCurrency?.symbol ?? '', compact: true, symbolPosition: selectedCurrency?.symbolPosition ?? '')}',
+                                  style: AppStyles.semibold(
+                                    size: 14,
+                                    color:
+                                        dailyTotal >= 0
+                                            ? Colors.green.shade400
+                                            : Colors.red.shade400,
+                                  ),
+                                );
+                              }
+                              return SizedBox();
+                            },
                           ),
                         ],
                       ),
                     ),
-                    //Transaction for this day
+                    //Transaction for the day
                     AppSpacing.vertical(size: 12),
-                    ...dayTransactions
-                        .map(
-                          (transaction) => Slidable(
-                            endActionPane: ActionPane(
-                              motion: ScrollMotion(),
-                              children: [
-                                SlidableAction(
-                                  foregroundColor: Colors.red.shade400,
-                                  icon: Icons.delete,
-                                  label: 'Delete',
-                                  backgroundColor: Colors.red.shade50,
+                    ...dayTransactions.map(
+                      (transaction) => Slidable(
+                        endActionPane: ActionPane(
+                          motion: ScrollMotion(),
+                          children: [
+                            SlidableAction(
+                              foregroundColor: Colors.red.shade400,
+                              icon: Icons.delete,
+                              label: 'Delete',
+                              backgroundColor: Colors.red.shade50,
 
-                                  onPressed: (context) {
-                                    _handleDelete(transaction.id);
-                                  },
-                                ),
-
-                                SlidableAction(
-                                  onPressed: (context) {
-                                    Navigator.of(context).pushNamed(
-                                      AppRoutes.updateTransaction,
-                                      arguments: transaction,
-                                    );
-                                  },
-                                  icon: Icons.edit,
-                                  label: 'Edit',
-                                  backgroundColor: Colors.blue.shade50,
-                                  foregroundColor: Colors.blue.shade400,
-                                ),
-                              ],
+                              onPressed: (context) {
+                                _handleDelete(transaction.id);
+                              },
                             ),
-                            child: ListTileComponent(
-                              onTap: () {
+
+                            SlidableAction(
+                              onPressed: (context) {
                                 Navigator.of(context).pushNamed(
-                                  AppRoutes.detailTransaction,
-                                  arguments: {
-                                    'id': transaction.id,
-                                    'type': transaction.type,
-                                  },
+                                  AppRoutes.updateTransaction,
+                                  arguments: transaction,
                                 );
                               },
-                              leadingIcon: Icon(
-                                Helper.transactionIcon[transaction
-                                    .category
-                                    .icon],
-                                color: Color(
-                                  int.parse(transaction.category.colourCode),
-                                ),
-                                size: 30,
-                              ),
-                              iconBackgroundColor: Color(
-                                int.parse(transaction.category.colourCode),
-                              ).withAlpha(50),
-                              title: transaction.description,
-                              subtitle: transaction.category.name,
-                              subTitleColor: Color(
-                                int.parse(transaction.category.colourCode),
-                              ),
-                              trailing:
-                                  transaction.type == 'income'
-                                      ? transaction.formattedAmountText
-                                      : "- ${transaction.formattedAmountText}",
-                              trailingColor:
-                                  transaction.type == 'income'
-                                      ? Colors.green
-                                      : Colors.red.shade400,
-                              subTraiLing: Helper.timeFormat(
-                                transaction.createdAt!,
-                              ),
+                              icon: Icons.edit,
+                              label: 'Edit',
+                              backgroundColor: Colors.blue.shade50,
+                              foregroundColor: Colors.blue.shade400,
                             ),
+                          ],
+                        ),
+                        child: ListTileComponent(
+                          onTap: () {
+                            Navigator.of(context).pushNamed(
+                              AppRoutes.detailTransaction,
+                              arguments: {
+                                'id': transaction.id,
+                                'type': transaction.type,
+                              },
+                            );
+                          },
+                          leadingIcon: Icon(
+                            Helper.transactionIcon[transaction.category.icon],
+                            color: Color(
+                              int.parse(transaction.category.colourCode),
+                            ),
+                            size: 30,
                           ),
-                        )
-                        .toList(),
+                          iconBackgroundColor: Color(
+                            int.parse(transaction.category.colourCode),
+                          ).withAlpha(50),
+                          title: transaction.description,
+                          subtitle: transaction.category.name,
+                          subTitleColor: Color(
+                            int.parse(transaction.category.colourCode),
+                          ),
+                          trailing:
+                              transaction.type == 'income'
+                                  ? transaction.formattedAmountText
+                                  : "- ${transaction.formattedAmountText}",
+                          trailingColor:
+                              transaction.type == 'income'
+                                  ? Colors.green
+                                  : Colors.red.shade400,
+                          subTraiLing: Helper.timeFormat(
+                            transaction.createdAt!,
+                          ),
+                        ),
+                      ),
+                    ),
                     AppSpacing.vertical(size: 16),
                   ]),
                 );
-              }).toList(),
-
-            if (!_isLoading && groupedTransactions.isEmpty)
+              }),
+            // Empty State
+            if (!_isLoading && dayTransactions.isEmpty)
               SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
@@ -345,26 +462,120 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _head() {
-    // Calculate totals from transactions
-    double totalIncome = 0;
-    double totalExpense = 0;
+  Widget _accountSummariesSection() {
+    if (accounts.isEmpty) return SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(AppStrings.accountBreakdown, style: AppStyles.semibold()),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showConvertedAmounts = !_showConvertedAmounts;
+                  });
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColours.primaryColourLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _showConvertedAmounts ? 'Show Original' : 'Show Converted',
+                    style: AppStyles.regular1(size: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        AppSpacing.vertical(size: 10),
+        SizedBox(
+          height: 120,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 15),
+            itemCount: accounts.length,
+            itemBuilder: (context, index) {
+              final account = accounts[index];
+              final converted =
+                  (convertedAccounts.length > index)
+                      ? convertedAccounts[index]
+                      : null;
+              final showConverted = _showConvertedAmounts && converted != null;
 
-    for (var transaction in transactions) {
-      if (transaction.type == 'income') {
-        totalIncome += transaction.amount;
-      } else {
-        totalExpense += transaction.amount;
-      }
-    }
-    double accountBalance = totalIncome - totalExpense;
+              double balance =
+                  showConverted
+                      ? converted['balance']!
+                      : account.currentBalance;
+              double income =
+                  showConverted
+                      ? converted['income']!
+                      : (account.totalIncome ?? 0);
+              double expense =
+                  showConverted
+                      ? converted['expense']!
+                      : (account.totalExpense ?? 0);
+
+              return AccountTile(
+                onTap: () {
+                  Navigator.of(
+                    context,
+                  ).pushNamed(AppRoutes.accountDetail, arguments: account.id);
+                },
+                width: 250,
+                accountName: account.name,
+                currency:
+                    _showConvertedAmounts
+                        ? selectedCurrency!.code
+                        : account.currency.code,
+                currentBalance:
+                    showConverted
+                        ? Helper.formatCurrency(
+                          balance,
+                          selectedCurrency!.symbol,
+                          compact: true,
+                          symbolPosition:
+                              selectedCurrency?.symbolPosition ?? '',
+                        )
+                        : Helper.formatCurrency(
+                          account.currentBalance,
+                          account.currency.symbol,
+                          compact: true,
+                          symbolPosition: account.currency.symbolPosition,
+                        ),
+                income:
+                    showConverted
+                        ? '+ ${Helper.formatCurrency(income, selectedCurrency?.symbol ?? '', compact: true, symbolPosition: selectedCurrency!.symbolPosition)}'
+                        : '+ ${Helper.formatCurrency(account.totalIncome ?? 0, account.currency.symbol, compact: true, symbolPosition: account.currency.symbolPosition)}',
+                expense:
+                    showConverted
+                        ? '- ${Helper.formatCurrency(expense, selectedCurrency?.symbol ?? '', compact: true, symbolPosition: selectedCurrency!.symbolPosition)}'
+                        : '- ${Helper.formatCurrency(account.totalExpense ?? 0, account.currency.symbol, compact: true, symbolPosition: account.currency.symbolPosition)}',
+                transactionCount:
+                    '${account.transactionCount} ${account.transactionCount! > 1 ? 'transactions' : 'transaction'}',
+              );
+            },
+          ),
+        ),
+        AppSpacing.vertical(size: 16),
+      ],
+    );
+  }
+
+  Widget _head() {
     return Stack(
       children: [
         Column(
           children: [
             Container(
               width: double.infinity,
-              height: 130,
+              height: 160,
               decoration: BoxDecoration(
                 color: AppColours.secondaryColour,
                 borderRadius: BorderRadius.only(
@@ -380,10 +591,10 @@ class _HomeScreenState extends State<HomeScreen> {
           left: MediaQuery.of(context).size.width / 2 - 180,
           child: Container(
             width: 360,
-            height: MediaQuery.of(context).size.height / 4.5,
+            height: MediaQuery.of(context).size.height / 4.4,
             decoration: BoxDecoration(
               color: AppColours.primaryColour,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
                   color: AppColours.primaryColour.withAlpha(900),
@@ -395,30 +606,94 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Column(
               children: [
-                AppSpacing.vertical(size: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Total balance label
                       Text(
-                        AppStrings.accountBalance,
+                        AppStrings.totalBalance,
                         style: AppStyles.regular1(
                           color: Colors.white,
                           size: 14,
                         ),
                       ),
-                      Icon(Icons.more_horiz, color: Colors.white, size: 30),
+                      DropdownButton<CurrencyModel>(
+                        borderRadius: BorderRadius.circular(12),
+                        value: selectedCurrency,
+                        dropdownColor: AppColours.primaryColour,
+                        style: AppStyles.regular1(color: Colors.white),
+                        underline: SizedBox(),
+                        icon: Icon(Icons.arrow_drop_down, color: Colors.white),
+                        items:
+                            currencies.map((currency) {
+                              return DropdownMenuItem(
+                                alignment: AlignmentDirectional.centerStart,
+                                value: currency,
+                                child: Text(currency.code),
+                              );
+                            }).toList(),
+                        onChanged: (CurrencyModel? value) async {
+                          if (value != null && value != selectedCurrency) {
+                            setState(() {
+                              selectedCurrency = value;
+                              convertedAccounts.clear();
+                              _isLoading = true;
+                            });
+
+                            // Reconvert all accounts to new base currency
+                            for (var account in accounts) {
+                              double balance = account.currentBalance;
+                              double income = account.totalIncome ?? 0;
+                              double expense = account.totalExpense ?? 0;
+                              if (account.currency.code !=
+                                  selectedCurrency!.code) {
+                                balance = await Helper.convertAmount(
+                                  balance,
+                                  account.currency.code,
+                                  selectedCurrency!.code,
+                                );
+                                income = await Helper.convertAmount(
+                                  income,
+                                  account.currency.code,
+                                  selectedCurrency!.code,
+                                );
+                                expense = await Helper.convertAmount(
+                                  expense,
+                                  account.currency.code,
+                                  selectedCurrency!.code,
+                                );
+                              }
+                              convertedAccounts.add({
+                                'balance': balance,
+                                'income': income,
+                                'expense': expense,
+                              });
+                            }
+                            _getTotalAmount();
+                            setState(() => _isLoading = false);
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
+
                 Padding(
                   padding: const EdgeInsets.only(left: 15),
                   child: Row(
                     children: [
+                      // Total Amounts
                       Text(
-                        "\$${accountBalance.toStringAsFixed(2)}",
-                        style: AppStyles.title3(color: Colors.white, size: 24),
+                        Helper.formatCurrency(
+                          totalAmount ?? 0,
+                          selectedCurrency?.symbol ?? '',
+                          compact: true,
+                          symbolPosition:
+                              selectedCurrency?.symbolPosition ?? '',
+                        ),
+                        style: AppStyles.title3(color: Colors.white, size: 20),
                       ),
                     ],
                   ),
@@ -427,9 +702,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       Container(
+                        width: MediaQuery.of(context).size.width / 2.7,
                         decoration: BoxDecoration(
                           color: Colors.green.shade400,
                           borderRadius: BorderRadius.circular(16),
@@ -440,7 +716,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             vertical: 10,
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+
                             children: [
                               Row(
                                 children: [
@@ -449,11 +726,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     radius: 10,
                                     child: Icon(
                                       Icons.arrow_downward,
-                                      size: 20,
+                                      size: 14,
                                       color: Colors.green,
                                     ),
                                   ),
-                                  AppSpacing.horizontal(size: 4),
+                                  AppSpacing.horizontal(size: 8),
                                   Text(
                                     AppStrings.income,
                                     style: AppStyles.medium(
@@ -462,19 +739,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ],
                               ),
+                              AppSpacing.vertical(size: 8),
+                              // Base Total income
                               Text(
-                                "\$${totalIncome.toStringAsFixed(2)}",
-                                style: AppStyles.medium(color: Colors.white),
+                                Helper.formatCurrency(
+                                  totalIncome ?? 0,
+                                  selectedCurrency?.symbol ?? '',
+                                  compact: true,
+                                  symbolPosition:
+                                      selectedCurrency?.symbolPosition ?? '',
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.fade,
+
+                                style: AppStyles.medium(
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      SizedBox(
-                        height: 60,
-                        child: VerticalDivider(color: Colors.white),
-                      ),
                       Container(
+                        width: MediaQuery.of(context).size.width / 2.7,
                         decoration: BoxDecoration(
                           color: Colors.red.shade400,
                           borderRadius: BorderRadius.circular(16),
@@ -485,7 +773,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             vertical: 10,
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Row(
                                 children: [
@@ -494,11 +782,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     radius: 10,
                                     child: Icon(
                                       Icons.arrow_upward,
-                                      size: 20,
+                                      size: 14,
                                       color: Colors.red,
                                     ),
                                   ),
-                                  AppSpacing.horizontal(size: 4),
+                                  AppSpacing.horizontal(size: 8),
                                   Text(
                                     AppStrings.expense,
                                     style: AppStyles.medium(
@@ -507,9 +795,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ],
                               ),
+                              AppSpacing.vertical(size: 8),
+                              // Base Total Expense
                               Text(
-                                "\$${totalExpense.toStringAsFixed(2)}",
-                                style: AppStyles.medium(color: Colors.white),
+                                Helper.formatCurrency(
+                                  totalExpense ?? 0,
+                                  selectedCurrency?.symbol ?? '',
+                                  compact: true,
+                                  symbolPosition:
+                                      selectedCurrency?.symbolPosition ?? '',
+                                ),
+
+                                style: AppStyles.medium(
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
                               ),
                             ],
                           ),

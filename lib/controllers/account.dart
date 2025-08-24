@@ -21,7 +21,6 @@ class AccountController {
         'initial_balance': initialBalance,
       });
       final results = response.data['results'];
-
       final account = await AccountService.create(results['account']);
 
       return Result(
@@ -43,28 +42,34 @@ class AccountController {
   }
 
   static Future<Result<List<AccountModel>>> load() async {
+    final accountsBox = await AccountService.getAll();
+    // if (accountsBox != null && accountsBox.isNotEmpty) {
+    //   // Return local data immediately
+    //   return Result(
+    //     isSuccess: true,
+    //     results: accountsBox,
+    //     message: AppStrings.dataRetrievedSuccess,
+    //   );
+    // }
     try {
-      //Load accounts from hive
-      final accountsBox = await AccountService.getAll();
-      if (accountsBox != null) {
+      final response = await ApiService.get(ApiRoutes.accountUrl, {});
+      if (response.statusCode == 200) {
+        final result = response.data['results'];
+        final accountModel = await AccountService.createAccounts(
+          result['accounts'],
+        );
         return Result(
           isSuccess: true,
-          results: accountsBox,
+          results: accountModel,
+          message: response.data['message'],
+        );
+      } else {
+        return Result(
+          isSuccess: true,
           message: AppStrings.dataRetrievedSuccess,
+          results: accountsBox,
         );
       }
-
-      final response = await ApiService.get(ApiRoutes.accountUrl, {});
-
-      final results = response.data['results'];
-
-      final accounts = await AccountService.createAccounts(results['accounts']);
-
-      return Result(
-        isSuccess: true,
-        message: response.data['message'],
-        results: accounts,
-      );
     } on DioException catch (e) {
       final errors = e.response?.data['errors'];
       final message = ApiService.errorMessage(e);
@@ -78,32 +83,38 @@ class AccountController {
   }
 
   static Future<Result<AccountModel>?> get(Map<String, dynamic> id) async {
+    final accountBox = await AccountService.getById(id['id']);
+    if (accountBox != null) {
+      // print("AccountB found in local storage: $accountBox");
+      return Result(
+        isSuccess: true,
+        results: accountBox,
+        message: AppStrings.dataRetrievedSuccess,
+      );
+    }
     try {
-      // print("Getting account with ID: ${id['id']} from local storage");
-      // Get Account by id from local storage
-      final accountBox = await AccountService.getById(id['id']);
-      if (accountBox != null) {
-        // print("AccountB found in local storage: $accountBox");
+      //Get account from server
+      final response = await ApiService.get(
+        "${ApiRoutes.accountUrl}/${id['id']}",
+        id,
+      );
+      if (response.statusCode == 200) {
+        final result = response.data['results'];
+        final account = result['account'];
+        final accountModel = AccountModel.fromMap(account);
+        // print("Account from server : $accountModel");
+        return Result(
+          isSuccess: true,
+          results: accountModel,
+          message: response.data['message'],
+        );
+      } else {
         return Result(
           isSuccess: true,
           results: accountBox,
           message: AppStrings.dataRetrievedSuccess,
         );
       }
-      //Get account from server
-      final response = await ApiService.get(
-        "${ApiRoutes.accountUrl}/${id['id']}",
-        id,
-      );
-      final result = response.data['results'];
-      final account = result['account'];
-      final accountModel = AccountModel.fromMap(account);
-      // print("Account from server : $accountModel");
-      return Result(
-        isSuccess: true,
-        results: accountModel,
-        message: response.data['message'],
-      );
     } on DioException catch (e) {
       final errors = e.response?.data['errors'];
       final message = ApiService.errorMessage(e);
@@ -133,8 +144,6 @@ class AccountController {
           }, id);
       final results = response.data['results'];
       final accountModel = await AccountService.create(results['account']);
-      print("AccountModel ${accountModel}");
-      print("Account ${results['account']}");
       return Result(
         isSuccess: true,
         results: accountModel,
@@ -153,7 +162,7 @@ class AccountController {
     }
   }
 
-  static Future<Result> delete(Map<String, dynamic> id) async {
+  static Future<Result<AccountModel>> delete(Map<String, dynamic> id) async {
     try {
       final response = await ApiService.delete(
         "${ApiRoutes.accountUrl}/${id['id']}",

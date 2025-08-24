@@ -323,7 +323,7 @@ class _DetailTransactionState extends State<DetailTransaction> {
             ],
           ),
           Text(
-            " ${Helper.dateFormat(transaction!.transactionDate)} (${Helper.timeFormat(transaction!.createdAt.toString())})",
+            " ${Helper.getFormattedDate(transaction!.transactionDate.toString())} (${Helper.timeFormat(transaction!.createdAt.toString())})",
 
             style: AppStyles.medium(color: Colors.white),
           ),

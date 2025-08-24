@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:smart_expense/controllers/exchange_rate.dart';
 
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_styles.dart';
@@ -45,9 +46,66 @@ class Helper {
     return double.parse(value);
   }
 
+  static Future<double> convertAmount(
+    double amount,
+    String from,
+    String to,
+  ) async {
+    double rate;
+    final result = await ExchangeRateController.convert(amount, from, to);
+    if (result.isSuccess && result.results != null) {
+      rate = result.results!.rate;
+      return rate;
+    }
+    return amount;
+  }
+
+  static String formatCurrency(
+    double amount,
+    String currency, {
+    bool compact = false,
+    String symbolPosition = 'before',
+  }) {
+    String formatted;
+    double absAmount = amount.abs();
+
+    if (compact && absAmount >= 1000) {
+      if (absAmount >= 1000000) {
+        formatted = '${(amount / 1000000).toStringAsFixed(1)}M';
+      } else {
+        formatted = '${(amount / 1000).toStringAsFixed(1)}K';
+      }
+    } else {
+      formatted = amount.toStringAsFixed(2);
+    }
+
+    if (symbolPosition == 'before') {
+      return '$currency $formatted';
+    } else {
+      return '$formatted $currency';
+    }
+  }
+
   static dateFormat(DateTime dateTime) {
     String formattedDate = DateFormat('EEEE, MMMM dd, yyyy').format(dateTime);
     return formattedDate;
+  }
+
+  // Get Formatted date to display
+  static String getFormattedDate(String dateKey) {
+    DateTime date = DateTime.parse(dateKey);
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime yesterday = today.subtract(Duration(days: 1));
+    DateTime transactionDate = DateTime(date.year, date.month, date.day);
+
+    if (transactionDate == today) {
+      return 'Today';
+    } else if (transactionDate == yesterday) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('EEEE, MMMM dd, yyyy').format(date);
+    }
   }
 
   static String timeFormat(String time) {
@@ -61,9 +119,11 @@ class Helper {
     if (deference.inMinutes < 1) {
       return "Just now";
     } else if (deference.inHours < 1) {
-      return "${deference.inMinutes}m ago";
-    } else if (deference.inDays < 1 - deference.inHours + 1) {
+      return "${deference.inMinutes} m ago";
+    } else if (deference.inDays < 1) {
       return "${deference.inHours}h ago";
+    } else if (deference.inDays < 10) {
+      return "${deference.inDays} ${deference.inDays > 1 ? "days ago" : "day ago"}";
     }
     return DateFormat('hh:mm a').format(transactionTime);
   }

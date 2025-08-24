@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_expense/controllers/transaction.dart';
+import 'package:smart_expense/models/currency.dart';
 import 'package:smart_expense/models/transaction.dart';
+import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
 import 'package:smart_expense/utills/helper.dart';
+import 'package:smart_expense/utills/helper_models/category_stats.dart';
+import 'package:smart_expense/utills/helper_models/currency_breakdown.dart';
+import 'package:smart_expense/views/components/ui/indecator.dart';
 import 'package:smart_expense/views/components/ui/list_tile.dart';
 
 class StatisticScreen extends StatefulWidget {
@@ -22,38 +27,73 @@ class _StatisticScreenState extends State<StatisticScreen> {
   List<String> days = ['Day', 'Week', 'Month', 'Year'];
   int currentIndex = 2; // Default to Month
 
-  List<TransactionModel> allTransactions = [];
+  List<TransactionModel> transactions = [];
   List<TransactionModel> filteredTransactions = [];
-  Map<String, double> categorySpending = {};
+  Map<String, CategoryStats> categoryStats = {};
+  Map<String, CurrencyBreakdown> currencyBreakdowns = {};
   List<FlSpot> chartData = [];
+  Map<String, String> chartLabels = {}; // for x-axis labels
+
   bool isLoading = true;
   String selectedType = 'expense'; // 'expense' or 'income'
+  String baseCurrency = 'USD';
+  UserModel? currentUser;
+  List<CurrencyModel> selectedCurrency = [];
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initScreen();
+  }
+
+  _initScreen() async {
+    await _loadData();
   }
 
   _loadData() async {
-    setState(() => isLoading = true);
-
-    final result = await TransactionController.load();
-    if (result.isSuccess && result.results != null) {
+    try {
       setState(() {
-        allTransactions = result.results!;
-        _filterTransactionsByPeriod();
-        isLoading = false;
+        isLoading = true;
+        errorMessage = null;
       });
-    } else {
-      setState(() => isLoading = false);
+      final result = await TransactionController.load();
+      if (result.isSuccess && result.results != null) {
+        setState(() {
+          transactions = result.results!;
+        });
+        await _processTransactions();
+        setState(() => isLoading = false);
+      } else {
+        setState(() {
+          isLoading = false;
+          errorMessage = result.message;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = AppStrings.failedToLoadData;
+      });
+    }
+  }
+
+  Future<void> _processTransactions() async {
+    try {
+      _filterTransactionsByPeriod();
+      await _calculateCurrencyBreakdowns();
+      await _calculateCategoryStats();
+      await _generateChartData();
+    } catch (e) {
+      setState(() {
+        errorMessage = AppStrings.failedToLoadData;
+      });
     }
   }
 
   _filterTransactionsByPeriod() {
     DateTime now = DateTime.now();
     DateTime startDate;
-
     switch (currentIndex) {
       case 0: // Day
         startDate = DateTime(now.year, now.month, now.day);
@@ -73,7 +113,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
     }
 
     filteredTransactions =
-        allTransactions.where((transaction) {
+        transactions.where((transaction) {
           DateTime transactionDate = transaction.transactionDate;
           return transactionDate.isAfter(
                 startDate.subtract(Duration(days: 1)),
@@ -81,43 +121,121 @@ class _StatisticScreenState extends State<StatisticScreen> {
               transactionDate.isBefore(now.add(Duration(days: 1))) &&
               transaction.type == selectedType;
         }).toList();
-
-    _calculateCategorySpending();
-    _generateChartData();
   }
 
-  _calculateCategorySpending() {
-    categorySpending.clear();
-
+  Future<void> _calculateCurrencyBreakdowns() async {
+    currencyBreakdowns.clear();
+    // Group transaction by currency
+    Map<String, List<TransactionModel>> transactionByCurrency = {};
     for (var transaction in filteredTransactions) {
-      String categoryName = transaction.category.name;
-      categorySpending[categoryName] =
-          (categorySpending[categoryName] ?? 0) + transaction.amount;
+      String currency = transaction.account.currency.code;
+      if (transactionByCurrency[currency] == null) {
+        transactionByCurrency[currency] = [];
+      }
+      transactionByCurrency[currency]!.add(transaction);
     }
 
-    // Sort by spending amount (descending)
-    var sortedEntries =
-        categorySpending.entries.toList()
-          ..sort((a, b) => b.value.compareTo(a.value));
+    // Calculate breakdown for each currency
+    for (var entry in transactionByCurrency.entries) {
+      String currency = entry.key;
+      List<TransactionModel> currencyTransactions = entry.value;
+      double originalTotal = currencyTransactions.fold(
+        0.0,
+        (sum, t) => sum + t.amount,
+      );
+      double convertedTotal = originalTotal;
 
-    categorySpending = Map.fromEntries(sortedEntries);
+      // Convert to base currency if different
+      if (currency != baseCurrency) {
+        convertedTotal = await Helper.convertAmount(
+          originalTotal,
+          currency,
+          baseCurrency,
+        );
+      }
+
+      currencyBreakdowns[currency] = CurrencyBreakdown(
+        currency: currency,
+        originalAmount: originalTotal,
+        convertedAmount: convertedTotal,
+        transactionCount: currencyTransactions.length,
+        exchangeRate:
+            currency != baseCurrency ? convertedTotal / originalTotal : 1.0,
+      );
+    }
   }
 
-  _generateChartData() {
-    chartData.clear();
+  Future<void> _calculateCategoryStats() async {
+    categoryStats.clear();
+    // Group transactions by category
+    Map<String, List<TransactionModel>> transactionByCategory = {};
+    for (var transaction in filteredTransactions) {
+      String categoryName = transaction.category.name;
+      if (transactionByCategory[categoryName] == null) {
+        transactionByCategory[categoryName] = [];
+      }
+      transactionByCategory[categoryName]!.add(transaction);
+    }
 
+    // Calculate stats for each Category (always convert to base currency)
+    for (var entry in transactionByCategory.entries) {
+      String categoryName = entry.key;
+      List<TransactionModel> categoryTransactions = entry.value;
+      double originalTotal = 0;
+      double convertedTotal = 0;
+
+      // Calculate totals with currency conversion to base currency
+      for (var transaction in categoryTransactions) {
+        originalTotal += transaction.amount;
+
+        // Always convert to base currency for statistics
+        if (transaction.account.currency.code != baseCurrency) {
+          double convertedAmount = await Helper.convertAmount(
+            transaction.amount,
+            transaction.account.currency.code,
+            baseCurrency,
+          );
+          convertedTotal += convertedAmount;
+        } else {
+          convertedTotal += transaction.amount;
+        }
+      }
+
+      // Get category info from first transaction
+      var firstTransaction = categoryTransactions.first;
+      categoryStats[categoryName] = CategoryStats(
+        categoryName: categoryName,
+        originalAmount: originalTotal,
+        convertedAmount: convertedTotal,
+        transactionCount: categoryTransactions.length,
+        categoryIcon: firstTransaction.category.icon,
+        categoryColor: firstTransaction.category.colourCode,
+        transactions: categoryTransactions,
+      );
+    }
+
+    // Sort by converted amount (descending)
+    var sortedEntries =
+        categoryStats.entries.toList()..sort(
+          (a, b) => b.value.convertedAmount.compareTo(a.value.convertedAmount),
+        );
+    categoryStats = Map.fromEntries(sortedEntries);
+  }
+
+  Future<void> _generateChartData() async {
+    chartData.clear();
+    chartLabels.clear();
     if (filteredTransactions.isEmpty) return;
 
-    Map<String, double> dailyData = {};
+    Map<String, double> timeData = {};
 
-    // Group transactions by date
+    // Group transactions by time period (always convert to base currency)
     for (var transaction in filteredTransactions) {
       DateTime date = transaction.transactionDate;
       String dateKey;
-
       switch (currentIndex) {
         case 0: // Day - group by hour
-          dateKey = '${date.hour}:00';
+          dateKey = '${date.hour.toString().padLeft(2, '0')}:00';
           break;
         case 1: // Week - group by day
           dateKey = DateFormat('EEE').format(date);
@@ -132,41 +250,51 @@ class _StatisticScreenState extends State<StatisticScreen> {
           dateKey = '${date.day}';
       }
 
-      dailyData[dateKey] = (dailyData[dateKey] ?? 0) + transaction.amount;
+      double amount = transaction.amount;
+
+      // Always convert to base currency for chart
+      if (transaction.account.currency.code != baseCurrency) {
+        amount = await Helper.convertAmount(
+          transaction.amount,
+          transaction.account.currency.code,
+          baseCurrency,
+        );
+      }
+
+      timeData[dateKey] = (timeData[dateKey] ?? 0) + amount;
     }
 
     // Convert to chart data points
     int index = 0;
-    dailyData.forEach((key, value) {
-      chartData.add(FlSpot(index.toDouble(), value));
+    var sortedEntries = timeData.entries.toList();
+
+    // Sort entries based on period type
+    if (currentIndex == 2) {
+      // Month sort by day number
+      sortedEntries.sort(
+        (a, b) => int.parse(a.key).compareTo(int.parse(b.key)),
+      );
+    } else if (currentIndex == 1) {
+      // Week sort by day order
+      List<String> dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      sortedEntries.sort(
+        (a, b) => dayOrder.indexOf(a.key).compareTo(dayOrder.indexOf(b.key)),
+      );
+    }
+
+    for (var entry in sortedEntries) {
+      chartData.add(FlSpot(index.toDouble(), entry.value));
+      chartLabels[index.toString()] = entry.key;
       index++;
-    });
+    }
   }
 
   double _getTotalAmount() {
-    return filteredTransactions.fold(
+    // Always use converted amounts for totals
+    return categoryStats.values.fold(
       0.0,
-      (sum, transaction) => sum + transaction.amount,
+      (sum, stats) => sum + stats.convertedAmount,
     );
-  }
-
-  String _getPeriodTitle() {
-    DateTime now = DateTime.now();
-
-    switch (currentIndex) {
-      case 0:
-        return DateFormat('EEEE, MMM dd').format(now);
-      case 1:
-        DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
-        return '${DateFormat('MMM dd').format(startOfWeek)} - ${DateFormat('MMM dd').format(endOfWeek)}';
-      case 2:
-        return DateFormat('MMMM yyyy').format(now);
-      case 3:
-        return DateFormat('yyyy').format(now);
-      default:
-        return DateFormat('MMMM yyyy').format(now);
-    }
   }
 
   @override
@@ -181,15 +309,14 @@ class _StatisticScreenState extends State<StatisticScreen> {
               floating: false,
               backgroundColor: AppColours.bgColor,
               flexibleSpace: FlexibleSpaceBar(
-                background:
-                // Period Title
-                Column(
+                background: Column(
                   children: [
                     AppSpacing.vertical(),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 15),
+                      // Period Title
                       child: Text(
-                        _getPeriodTitle(),
+                        Helper.getPeriodTitle(currentIndex),
                         style: AppStyles.title3(size: 18),
                       ),
                     ),
@@ -209,11 +336,14 @@ class _StatisticScreenState extends State<StatisticScreen> {
                       children: [
                         ...List.generate(4, (index) {
                           return GestureDetector(
-                            onTap: () {
+                            onTap: () async {
+                              if (isLoading) return;
                               setState(() {
                                 currentIndex = index;
-                                _filterTransactionsByPeriod();
+                                isLoading = true;
                               });
+                              await _processTransactions();
+                              setState(() => isLoading = false);
                             },
                             child: Container(
                               alignment: Alignment.center,
@@ -250,38 +380,56 @@ class _StatisticScreenState extends State<StatisticScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // Total Amount Display
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total ${selectedType == 'expense' ? 'Expenses' : 'Income'}',
-                              style: AppStyles.regular1(
-                                color: AppColours.light20,
-                                size: 14,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Total ${selectedType == 'expense' ? 'Expenses' : 'Income'}',
+                                style: AppStyles.regular1(
+                                  color: AppColours.light20,
+                                  size: 14,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '\$${_getTotalAmount().toStringAsFixed(2)}',
-                              style: AppStyles.title3(
-                                size: 24,
-                                color:
-                                    selectedType == 'expense'
-                                        ? Colors.red.shade400
-                                        : Colors.green.shade400,
+                              Text(
+                                Helper.formatCurrency(
+                                  _getTotalAmount(),
+                                  '\$',
+                                  symbolPosition: 'before',
+                                  compact: true,
+                                ),
+                                style: AppStyles.title3(
+                                  size: 24,
+                                  color:
+                                      selectedType == 'expense'
+                                          ? Colors.red.shade400
+                                          : Colors.green.shade400,
+                                ),
                               ),
-                            ),
-                          ],
+                              if (currencyBreakdowns.length > 1)
+                                Text(
+                                  'All amounts in $baseCurrency',
+                                  style: AppStyles.regular1(
+                                    color: Colors.grey.shade600,
+                                    size: 10,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                        // Type Selector
+                        // Type selector only
                         GestureDetector(
-                          onTap: () {
+                          onTap: () async {
+                            if (isLoading) return;
                             setState(() {
                               selectedType =
                                   selectedType == 'expense'
                                       ? 'income'
                                       : 'expense';
-                              _filterTransactionsByPeriod();
+                              isLoading = true;
                             });
+                            await _processTransactions();
+                            setState(() => isLoading = false);
                           },
                           child: Container(
                             width: 120,
@@ -332,18 +480,17 @@ class _StatisticScreenState extends State<StatisticScreen> {
                     ),
                   ),
                   AppSpacing.vertical(),
-                  // Chart
+                  // Currency Breakdown if multiple currencies (shows original amounts)
+                  if (currencyBreakdowns.length > 1) _buildCurrencyBreakdown(),
+                  // Loading
                   if (isLoading)
-                    Container(
-                      height: 200,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColours.primaryColour,
-                        ),
-                      ),
-                    )
+                    SizedBox(height: 200, child: Center(child: MyIndecator()))
+                  // Error Message
+                  else if (errorMessage != null)
+                    _errorMessageState()
+                  // Empty state
                   else if (chartData.isEmpty)
-                    Container(
+                    SizedBox(
                       height: 200,
                       child: Center(
                         child: Column(
@@ -354,11 +501,19 @@ class _StatisticScreenState extends State<StatisticScreen> {
                               size: 48,
                               color: Colors.grey.shade400,
                             ),
-                            SizedBox(height: 8),
+                            AppSpacing.vertical(size: 8),
                             Text(
                               'No data for this period',
                               style: AppStyles.regular1(
                                 color: Colors.grey.shade600,
+                              ),
+                            ),
+                            AppSpacing.vertical(size: 4),
+                            Text(
+                              'Try selecting a different period or transaction type',
+                              style: AppStyles.regular1(
+                                color: Colors.grey.shade500,
+                                size: 12,
                               ),
                             ),
                           ],
@@ -381,7 +536,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                           style: AppStyles.semibold(),
                         ),
                         Text(
-                          '${filteredTransactions.length} transactions',
+                          '${filteredTransactions.length} transaction${filteredTransactions.length != 1 ? 's' : ''}',
                           style: AppStyles.regular1(
                             color: AppColours.light20,
                             size: 12,
@@ -393,19 +548,21 @@ class _StatisticScreenState extends State<StatisticScreen> {
                 ],
               ),
             ),
-            // Top Spending List
+            // Loading
             if (isLoading)
               SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: CircularProgressIndicator(
-                      color: AppColours.primaryColour,
-                    ),
+                    child: MyIndecator(),
                   ),
                 ),
               )
-            else if (categorySpending.isEmpty)
+            // Error State
+            else if (errorMessage != null)
+              SliverToBoxAdapter(child: _errorMessageState())
+            // Empty State
+            else if (categoryStats.isEmpty)
               SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
@@ -425,69 +582,75 @@ class _StatisticScreenState extends State<StatisticScreen> {
                             color: Colors.grey.shade600,
                           ),
                         ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Try selecting a different time period or add some transactions',
+                          style: AppStyles.regular1(
+                            color: Colors.grey.shade500,
+                            size: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ],
                     ),
                   ),
                 ),
               )
+            // Category stats list (always shows base currency amounts)
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
-                  var entry = categorySpending.entries.elementAt(index);
-                  String categoryName = entry.key;
-                  double amount = entry.value;
-
-                  // Find a transaction from this category to get icon and color
-                  var categoryTransaction = filteredTransactions.firstWhere(
-                    (t) => t.category.name == categoryName,
-                  );
+                  var stats = categoryStats.values.elementAt(index);
+                  // Always use converted amounts for display
+                  double displayAmount = stats.convertedAmount;
 
                   // Calculate percentage of total
                   double percentage =
                       (_getTotalAmount() > 0)
-                          ? (amount / _getTotalAmount()) * 100
+                          ? (displayAmount / _getTotalAmount()) * 100
                           : 0;
 
+                  // Categories Tile
                   return Padding(
                     padding: EdgeInsets.symmetric(horizontal: 15, vertical: 2),
                     child: ListTileComponent(
                       leadingIcon: Icon(
-                        Helper.transactionIcon[categoryTransaction
-                                .category
-                                .icon] ??
+                        Helper.transactionIcon[stats.categoryIcon] ??
                             Icons.category,
-                        color: Color(
-                          int.parse(categoryTransaction.category.colourCode),
-                        ),
+                        color: Color(int.parse(stats.categoryColor)),
                         size: 30,
                       ),
                       iconBackgroundColor: Color(
-                        int.parse(categoryTransaction.category.colourCode),
+                        int.parse(stats.categoryColor),
                       ).withAlpha(50),
-                      title: categoryName,
+                      title: stats.categoryName,
                       subtitle: '${percentage.toStringAsFixed(1)}% of total',
-                      subTitleColor: Color(
-                        int.parse(categoryTransaction.category.colourCode),
+                      subTitleColor: Color(int.parse(stats.categoryColor)),
+                      trailing: Helper.formatCurrency(
+                        stats.convertedAmount,
+                        baseCurrency,
+                        compact: true,
+                        symbolPosition: 'before',
                       ),
-                      trailing: '\$${amount.toStringAsFixed(2)}',
                       trailingColor:
                           selectedType == 'expense'
                               ? Colors.red.shade400
                               : Colors.green.shade400,
-                      subTraiLing: _getTransactionCount(categoryName),
+                      subTraiLing:
+                          '${stats.transactionCount} transaction${stats.transactionCount != 1 ? 's' : ''}',
                       onTap: () {
                         // Navigate to category details or filter by category
                         Navigator.of(context).pushNamed(
                           AppRoutes.detailTransaction,
                           arguments: {
-                            'category': categoryName,
+                            'category': stats.categoryName,
                             'type': selectedType,
                           },
                         );
                       },
                     ),
                   );
-                }, childCount: categorySpending.length),
+                }, childCount: categoryStats.length),
               ),
           ],
         ),
@@ -495,12 +658,97 @@ class _StatisticScreenState extends State<StatisticScreen> {
     );
   }
 
-  String _getTransactionCount(String categoryName) {
-    int count =
-        filteredTransactions
-            .where((t) => t.category.name == categoryName)
-            .length;
-    return '$count transaction${count != 1 ? 's' : ''}';
+  Widget _buildCurrencyBreakdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Currency Breakdown', style: AppStyles.semibold()),
+              Text(
+                'Original amounts',
+                style: AppStyles.regular1(
+                  color: Colors.grey.shade600,
+                  size: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 90,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 15),
+            itemCount: currencyBreakdowns.length,
+            itemBuilder: ((context, index) {
+              var breakdown = currencyBreakdowns.values.elementAt(index);
+              // Always show original amounts in currency breakdown
+              double displayAmount = breakdown.originalAmount;
+              String currency = breakdown.currency;
+              return Container(
+                width: 120,
+                margin: EdgeInsets.only(right: 12),
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          breakdown.currency,
+                          style: AppStyles.medium(size: 12),
+                        ),
+                        if (breakdown.currency != baseCurrency)
+                          Icon(
+                            Icons.currency_exchange,
+                            size: 10,
+                            color: Colors.grey,
+                          ),
+                      ],
+                    ),
+                    AppSpacing.vertical(size: 4),
+                    Text(
+                      Helper.formatCurrency(
+                        displayAmount,
+                        currency,
+                        compact: true,
+                        symbolPosition: 'before',
+                      ),
+                      style: AppStyles.semibold(
+                        size: 14,
+                        color:
+                            selectedType == 'expense'
+                                ? Colors.red.shade400
+                                : Colors.green.shade400,
+                      ),
+                    ),
+                    Text(
+                      '${breakdown.transactionCount} transaction${breakdown.transactionCount != 1 ? 's' : ''}',
+                      style: AppStyles.regular1(
+                        size: 10,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ),
+        AppSpacing.vertical(size: 30),
+      ],
+    );
   }
 
   Widget _buildChart() {
@@ -512,7 +760,8 @@ class _StatisticScreenState extends State<StatisticScreen> {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: _getTotalAmount() / 5,
+            horizontalInterval:
+                _getTotalAmount() > 0 ? _getTotalAmount() / 5 : 20,
             getDrawingHorizontalLine: (value) {
               return FlLine(color: Colors.grey.shade300, strokeWidth: 1);
             },
@@ -527,51 +776,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                 reservedSize: 30,
                 interval: 1,
                 getTitlesWidget: (double value, TitleMeta meta) {
-                  if (value.toInt() >= chartData.length) return Text('');
-
-                  String label = '';
-                  switch (currentIndex) {
-                    case 0: // Day
-                      label = '${value.toInt()}h';
-                      break;
-                    case 1: // Week
-                      List<String> weekDays = [
-                        'Mon',
-                        'Tue',
-                        'Wed',
-                        'Thu',
-                        'Fri',
-                        'Sat',
-                        'Sun',
-                      ];
-                      if (value.toInt() < weekDays.length) {
-                        label = weekDays[value.toInt()];
-                      }
-                      break;
-                    case 2: // Month
-                      label = '${value.toInt() + 1}';
-                      break;
-                    case 3: // Year
-                      List<String> months = [
-                        'Jan',
-                        'Feb',
-                        'Mar',
-                        'Apr',
-                        'May',
-                        'Jun',
-                        'Jul',
-                        'Aug',
-                        'Sep',
-                        'Oct',
-                        'Nov',
-                        'Dec',
-                      ];
-                      if (value.toInt() < months.length) {
-                        label = months[value.toInt()];
-                      }
-                      break;
-                  }
-
+                  String label = chartLabels[value.toInt().toString()] ?? '';
                   return Text(label, style: AppStyles.regular1(size: 10));
                 },
               ),
@@ -579,12 +784,17 @@ class _StatisticScreenState extends State<StatisticScreen> {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                interval: _getTotalAmount() / 4,
+                interval: _getTotalAmount() > 0 ? _getTotalAmount() / 4 : 25,
                 reservedSize: 40,
                 getTitlesWidget: (double value, TitleMeta meta) {
                   return Text(
-                    '\$${value.toInt()}',
-                    style: AppStyles.regular1(size: 10),
+                    Helper.formatCurrency(
+                      value,
+                      '\$',
+                      compact: true,
+                      symbolPosition: 'before',
+                    ),
+                    style: AppStyles.regular1(size: 8),
                   );
                 },
               ),
@@ -595,7 +805,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
             border: Border.all(color: Colors.grey.shade300),
           ),
           minX: 0,
-          maxX: chartData.length.toDouble() - 1,
+          maxX: chartData.isNotEmpty ? chartData.length.toDouble() - 1 : 0,
           minY: 0,
           maxY:
               chartData.isNotEmpty
@@ -636,18 +846,39 @@ class _StatisticScreenState extends State<StatisticScreen> {
                   colors:
                       selectedType == 'expense'
                           ? [
-                            Colors.red.shade400.withOpacity(0.3),
-                            Colors.red.shade400.withOpacity(0.1),
+                            Colors.red.shade400.withAlpha(50),
+                            Colors.red.shade400.withAlpha(20),
                           ]
                           : [
-                            Colors.green.shade400.withOpacity(0.3),
-                            Colors.green.shade400.withOpacity(0.1),
+                            Colors.green.shade400.withAlpha(50),
+                            Colors.green.shade400.withAlpha(20),
                           ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _errorMessageState() {
+    return SizedBox(
+      height: 200,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+            AppSpacing.vertical(size: 8),
+            Text(
+              errorMessage!,
+              style: AppStyles.regular1(color: Colors.red.shade600),
+            ),
+            AppSpacing.vertical(),
+            TextButton(onPressed: _loadData, child: Text('Retry')),
           ],
         ),
       ),

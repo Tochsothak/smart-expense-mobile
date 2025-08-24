@@ -5,19 +5,31 @@ import 'package:smart_expense/resources/app_styles.dart';
 
 class AccountTile extends StatefulWidget {
   final Widget? icon;
-  final String accountName;
-  final String currency;
-  final String currentBalance;
-  final String accountType;
-  final VoidCallback onTap;
+  final String? accountName;
+  final String? currency;
+  final String? currentBalance;
+  final String? transactionCount;
+  final String? income;
+  final String? expense;
+  final double? width;
+  final double topSize;
+  final double midSize;
+  final double bottomSize;
+  final VoidCallback? onTap;
   const AccountTile({
     super.key,
-    required this.accountName,
-    required this.currency,
-    required this.currentBalance,
-    required this.accountType,
-    required this.onTap,
-    required this.icon,
+    this.accountName,
+    this.currency,
+    this.currentBalance,
+    this.transactionCount,
+    this.onTap,
+    this.icon,
+    this.income,
+    this.expense,
+    this.width,
+    this.topSize = 12,
+    this.midSize = 16,
+    this.bottomSize = 10,
   });
 
   @override
@@ -29,78 +41,85 @@ class _AccountTileState extends State<AccountTile> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-        child: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.blue.shade300..withAlpha(90)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade400.withAlpha(100),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: widget.icon,
-              ),
-              SizedBox(
-                height: 30,
-                child: VerticalDivider(color: Colors.grey.shade300),
-              ),
-
-              Expanded(
-                flex: 50,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.accountName,
-                      style: AppStyles.medium(size: 18),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                    AppSpacing.vertical(size: 6),
-                    Text(
-                      widget.currency,
-                      style: AppStyles.regular1(
-                        color: AppColours.light20,
-                        size: 12,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ],
-                ),
-              ),
-              Spacer(),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    widget.currentBalance,
-                    style: AppStyles.medium(
-                      color: Colors.blue.shade400,
-                      size: 18,
-                    ),
-                  ),
-                  AppSpacing.vertical(size: 6),
-                  Text(
-                    widget.accountType,
+      child: Container(
+        width: widget.width ?? MediaQuery.of(context).size.width / 1 - 30,
+        margin: EdgeInsets.only(right: 12),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColours.primaryColour,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  // Account Name
+                  child: Text(
+                    widget.accountName ?? 'Account Name',
                     style: AppStyles.regular1(
-                      color: AppColours.light20,
-                      size: 12,
+                      size: widget.topSize,
+                      color: Colors.white,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
+                ),
+                Text(
+                  // Currency Code
+                  widget.currency ?? 'Currency Code',
+                  style: AppStyles.regular1(
+                    size: widget.topSize,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            AppSpacing.vertical(size: 8),
+
+            // Account balance
+            Text(
+              widget.currentBalance ?? 'Account Balance',
+              style: AppStyles.semibold(
+                size: widget.midSize,
+                color: Colors.white,
               ),
-            ],
-          ),
+            ),
+            AppSpacing.vertical(size: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Total Income
+                Text(
+                  widget.income ?? 'Total Income',
+                  style: AppStyles.regular1(
+                    size: widget.bottomSize,
+                    color: Colors.green.shade400,
+                  ),
+                ),
+                // Total Expense
+                Text(
+                  widget.expense ?? 'Total Expense',
+                  style: AppStyles.regular1(
+                    size: widget.bottomSize,
+                    color: Colors.red.shade400,
+                  ),
+                ),
+                AppSpacing.horizontal(size: 2),
+                // Transactions Count
+                Text(
+                  widget.transactionCount ?? 'Transaction Count',
+                  style: AppStyles.regular1(
+                    size: widget.bottomSize,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

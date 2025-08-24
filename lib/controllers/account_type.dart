@@ -8,26 +8,33 @@ import 'package:smart_expense/services/api_routes.dart';
 
 class AccountTypeController {
   static Future<Result<List<AccountTypeModel>>> load() async {
+    final accountTypeBoxList = await AccountTypeService.getAll();
+    if (accountTypeBoxList != null && accountTypeBoxList.isNotEmpty) {
+      return Result(
+        isSuccess: true,
+        results: accountTypeBoxList,
+        message: AppStrings.dataRetrievedSuccess,
+      );
+    }
     try {
-      final accountTypeBoxList = await AccountTypeService.getAll();
-      if (accountTypeBoxList != null) {
+      final response = await ApiService.get(ApiRoutes.accountTypeUrl, {});
+      if (response.statusCode == 200) {
+        final results = response.data['results'];
+        final accountTypes = await AccountTypeService.createAccountTypes(
+          results['account_types'],
+        );
+        return Result(
+          isSuccess: true,
+          message: response.data['message'],
+          results: accountTypes,
+        );
+      } else {
         return Result(
           isSuccess: true,
           results: accountTypeBoxList,
           message: AppStrings.dataRetrievedSuccess,
         );
       }
-
-      final response = await ApiService.get(ApiRoutes.accountTypeUrl, {});
-      final results = response.data['results'];
-      final accountTypes = await AccountTypeService.createAccountTypes(
-        results['account_types'],
-      );
-      return Result(
-        isSuccess: true,
-        message: response.data['message'],
-        results: accountTypes,
-      );
     } on DioException catch (e) {
       final message = ApiService.errorMessage(e);
       final errors = e.response?.data['errors'];

@@ -94,6 +94,7 @@ class AppStrings {
   static String accountDetail = "Account Detail";
   static String totalIncome = "Total Income";
   static String totalExpense = "Total Expense";
+  static String totalBalance = "Total Balance";
   static String incomeCount = "Income Count";
   static String expenseCount = "Expense Count";
   static String transactionCount = "Transaction Count";
@@ -129,4 +130,5 @@ class AppStrings {
   static String updateExpense = "Update Expense";
   static String updateIncome = "Update Income";
   static String noDataForThisPeriod = "No data for this period";
+  static String accountBreakdown = "Account Breakdown";
 }

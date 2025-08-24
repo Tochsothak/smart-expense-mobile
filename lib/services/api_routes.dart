@@ -20,4 +20,6 @@ class ApiRoutes {
   static const String categoryUrl = '$baseUrl/category';
 
   static const String transactionUrl = '$baseUrl/transaction';
+
+  static const String rate = '$baseUrl/rate';
 }

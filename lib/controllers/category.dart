@@ -8,29 +8,33 @@ import 'package:smart_expense/services/category.dart';
 
 class CategoryController {
   static Future<Result<List<CategoryModel>>> load() async {
+    final categoryBoxList = await CategoryService.getAll();
+    if (categoryBoxList != null) {
+      return Result(
+        isSuccess: true,
+        results: categoryBoxList,
+        message: AppStrings.dataRetrievedSuccess,
+      );
+    }
     try {
-      final categoryBoxList = await CategoryService.getAll();
-      if (categoryBoxList != null) {
+      final response = await ApiService.get(ApiRoutes.categoryUrl, {});
+      if (response.statusCode == 200) {
+        final results = response.data['results'];
+        final categories = await CategoryService.createCategories(
+          results['categories'],
+        );
+        return Result(
+          isSuccess: true,
+          message: response.data['message'],
+          results: categories,
+        );
+      } else {
         return Result(
           isSuccess: true,
           results: categoryBoxList,
           message: AppStrings.dataRetrievedSuccess,
         );
       }
-      final response = await ApiService.get(ApiRoutes.categoryUrl, {});
-      final results = response.data['results'];
-      final categories = await CategoryService.createCategories(
-        results['categories'],
-      );
-
-      print("Categories : ${categories[1]}");
-      print("Message : ${response.data['message']}");
-
-      return Result(
-        isSuccess: true,
-        message: response.data['message'],
-        results: categories,
-      );
     } on DioException catch (e) {
       final message = ApiService.errorMessage(e);
       final errors = e.response?.data['errors'];

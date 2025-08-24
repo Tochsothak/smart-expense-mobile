@@ -191,8 +191,8 @@ class _AllTransactionsState extends State<AllTransactions> {
                           transaction.type == 'income'
                               ? Colors.green
                               : Colors.red.shade400,
-                      subTraiLing: Helper.dateFormat(
-                        transaction.transactionDate,
+                      subTraiLing: Helper.getFormattedDate(
+                        transaction.transactionDate.toString(),
                       ),
                       // time: Helper.timeFormat(transaction.createdAt.toString()),
                     ),

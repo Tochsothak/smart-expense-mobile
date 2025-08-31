@@ -32,4 +32,9 @@ class CategoryService {
     }
     return categoryModels;
   }
+
+  static Future delete() async {
+    final categoryBox = await Hive.openBox(CategoryModel.categoryBox);
+    await categoryBox.clear();
+  }
 }

@@ -23,4 +23,7 @@ class AppRoutes {
   static String updateAccount = "/update-account";
   static String updateTransaction = "/update-transaction";
   static String allTransactions = "/allTransactions";
+
+  // FOR DEVELOPMENT ONLY
+  static String apiConfig = "/api-config";
 }

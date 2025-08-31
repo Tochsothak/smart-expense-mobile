@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class BottomSheetItem {
   final String text;
   final IconData icon;
-  final Function() onTap;
+  final VoidCallback onTap;
 
   const BottomSheetItem({
     required this.text,

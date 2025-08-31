@@ -3,6 +3,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:smart_expense/controllers/account.dart';
 import 'package:smart_expense/controllers/currency.dart';
+import 'package:smart_expense/controllers/profile.dart';
 import 'package:smart_expense/controllers/transaction.dart';
 import 'package:smart_expense/models/account.dart';
 import 'package:smart_expense/models/currency.dart';
@@ -16,7 +17,6 @@ import 'package:smart_expense/resources/app_styles.dart';
 import 'package:smart_expense/services/auth.dart';
 import 'package:smart_expense/utills/helper.dart';
 import 'package:smart_expense/views/components/ui/account_tile.dart';
-
 import 'package:smart_expense/views/components/ui/list_tile.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,19 +26,19 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with RouteAware {
   List<TransactionModel> transactions = [];
   Map<String, List<TransactionModel>> dayTransactions = {};
   List<AccountModel> accounts = [];
   List<CurrencyModel> currencies = [];
-  // String baseCurrency = 'USD';
   CurrencyModel? selectedCurrency;
   double? totalAmount;
   double? totalIncome;
   double? totalExpense;
   bool _isLoading = false;
-  bool _showConvertedAmounts = true; // Toggle for showing converted vs original
+  bool _showConvertedAmounts = true;
   UserModel? user;
+  bool _isLoadingProfile = false;
 
   List<Map<String, double>> convertedAccounts = [];
 
@@ -46,6 +46,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initScreen();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Listen for route changes to refresh profile when returning from profile screen
+    ModalRoute.of(context)?.settings.name;
+  }
+
+  // Add this method to handle route returns
+  void didPopNext() {
+    // This is called when returning from another screen
+    _refreshProfile();
   }
 
   _initScreen() async {
@@ -61,17 +74,46 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
       );
     }
-    await _loadAccounts(); // Await here to ensure conversion are done before UI build
-    _getUser();
+    await _loadAccounts();
+    await _getUser();
     _loadTransactions();
   }
 
-  _getUser() async {
-    final currentUser = await AuthService.get();
-    if (currentUser != null) {
-      setState(() {
-        user = currentUser;
-      });
+  // Enhanced user loading with profile refresh
+  Future<void> _getUser() async {
+    setState(() => _isLoadingProfile = true);
+    try {
+      // First try to get from local storage
+      final currentUser = await AuthService.get();
+      if (currentUser != null) {
+        setState(() {
+          user = currentUser;
+        });
+      }
+      // Then refresh from server
+      await _refreshProfile();
+    } catch (e) {
+      print('Error loading user: $e');
+    } finally {
+      setState(() => _isLoadingProfile = false);
+    }
+  }
+
+  // Add method to refresh profile from server
+  Future<void> _refreshProfile() async {
+    try {
+      final result = await ProfileController.getProfile();
+      if (result.isSuccess && result.results != null) {
+        setState(() {
+          user = result.results;
+        });
+        // Update local storage
+        // await AuthService.create(result.results)
+      } else {
+        print('Failed to refresh profile: ${result.message}');
+      }
+    } catch (e) {
+      print('Error refreshing profile: $e');
     }
   }
 
@@ -93,7 +135,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = await AccountController.load();
     if (result.isSuccess && result.results != null) {
       accounts = result.results!;
-      // Convert all account value to base currency once
       convertedAccounts.clear();
       for (var account in accounts) {
         double balance = account.currentBalance;
@@ -139,13 +180,11 @@ class _HomeScreenState extends State<HomeScreen> {
         dayTransactions = _groupTransactionsByDay(transactions);
         _isLoading = false;
       });
-      // print(result.results);
     } else {
       setState(() => _isLoading = false);
     }
   }
 
-  // Calculate total converted amounts
   _getTotalAmount() async {
     double total = 0;
     double income = 0;
@@ -163,14 +202,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // GroupTransaction By Days
   Map<String, List<TransactionModel>> _groupTransactionsByDay(
     List<TransactionModel> transactions,
   ) {
     Map<String, List<TransactionModel>> grouped = {};
 
     for (var transaction in transactions) {
-      // Format date as key (e.g "2024-01-15")
       String dateKey = DateFormat(
         'yyy-MM-dd',
       ).format(transaction.transactionDate);
@@ -179,7 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       grouped[dateKey]!.add(transaction);
 
-      // Sort each day's transactions by time (newest first)
       grouped.forEach((key, value) {
         value.sort((a, b) => b.transactionDate.compareTo(a.transactionDate));
       });
@@ -187,13 +223,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return grouped;
   }
 
-  // Calculate daily total with currency conversion
   Future<double> _getDailyTotal(List<TransactionModel> dayTransactions) async {
     double total = 0;
     for (var transaction in dayTransactions) {
       double transactionAmount = transaction.amount;
-      if (_showConvertedAmounts &&
-          transaction.account.currency.code != selectedCurrency?.code) {
+      if (transaction.account.currency.code != selectedCurrency?.code) {
         double amount = await Helper.convertAmount(
           transactionAmount,
           transaction.account.currency.code,
@@ -221,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         isSuccess: true,
       );
-      _initScreen(); // Refresh
+      _initScreen();
     } else {
       Helper.snackBar(context, message: result.message, isSuccess: false);
     }
@@ -246,7 +280,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: _head(),
               ),
             ),
-            //Account Summaries Section
             SliverToBoxAdapter(child: _accountSummariesSection()),
             SliverToBoxAdapter(
               child: Padding(
@@ -286,7 +319,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            //Loading Indicator
             if (_isLoading)
               SliverToBoxAdapter(
                 child: Center(
@@ -299,14 +331,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-            // Grouped transactions
+
             if (!_isLoading && dayTransactions.isNotEmpty)
               ...dayTransactions.entries.map((entry) {
                 String dateKey = entry.key;
                 List<TransactionModel> dayTransactions = entry.value;
 
                 return SliverList(
-                  // Date header
                   delegate: SliverChildListDelegate([
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -347,7 +378,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     ),
-                    //Transaction for the day
                     AppSpacing.vertical(size: 12),
                     ...dayTransactions.map(
                       (transaction) => Slidable(
@@ -359,12 +389,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.delete,
                               label: 'Delete',
                               backgroundColor: Colors.red.shade50,
-
                               onPressed: (context) {
                                 _handleDelete(transaction.id);
                               },
                             ),
-
                             SlidableAction(
                               onPressed: (context) {
                                 Navigator.of(context).pushNamed(
@@ -422,7 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ]),
                 );
               }),
-            // Empty State
+
             if (!_isLoading && dayTransactions.isEmpty)
               SliverToBoxAdapter(
                 child: Center(
@@ -611,7 +639,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Total balance label
                       Text(
                         AppStrings.totalBalance,
                         style: AppStyles.regular1(
@@ -642,7 +669,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               _isLoading = true;
                             });
 
-                            // Reconvert all accounts to new base currency
                             for (var account in accounts) {
                               double balance = account.currentBalance;
                               double income = account.totalIncome ?? 0;
@@ -679,12 +705,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.only(left: 15),
                   child: Row(
                     children: [
-                      // Total Amounts
                       Text(
                         Helper.formatCurrency(
                           totalAmount ?? 0,
@@ -717,7 +741,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
-
                             children: [
                               Row(
                                 children: [
@@ -740,7 +763,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                               AppSpacing.vertical(size: 8),
-                              // Base Total income
                               Text(
                                 Helper.formatCurrency(
                                   totalIncome ?? 0,
@@ -751,7 +773,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.fade,
-
                                 style: AppStyles.medium(
                                   color: Colors.white,
                                   size: 14,
@@ -796,7 +817,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                               AppSpacing.vertical(size: 8),
-                              // Base Total Expense
                               Text(
                                 Helper.formatCurrency(
                                   totalExpense ?? 0,
@@ -805,7 +825,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   symbolPosition:
                                       selectedCurrency?.symbolPosition ?? '',
                                 ),
-
                                 style: AppStyles.medium(
                                   color: Colors.white,
                                   size: 14,
@@ -847,7 +866,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(3),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(50),
-                    child: Image.asset("assets/images/sothak.jpg"),
+                    child: _buildProfileImage(),
                   ),
                 ),
               ),
@@ -861,17 +880,68 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: AppStyles.medium(color: Colors.white),
                   ),
                   Text(
-                    user?.name ?? '',
+                    user?.name ?? 'Loading...',
                     style: AppStyles.regular1(color: Colors.white, size: 12),
                   ),
                 ],
               ),
             ],
           ),
-
-          Icon(Icons.notifications, color: Colors.white, size: 30),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).pushNamed(AppRoutes.notification);
+            },
+            child: Icon(Icons.notifications, color: Colors.white, size: 30),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProfileImage() {
+    if (_isLoadingProfile) {
+      return Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        ),
+      );
+    }
+
+    if (user?.hasProfileImage == true && user?.profileImageUrl != null) {
+      return Image.network(
+        user!.profileImageUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildDefaultAvatar();
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              value:
+                  loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+            ),
+          );
+        },
+      );
+    } else {
+      return _buildDefaultAvatar();
+    }
+  }
+
+  Widget _buildDefaultAvatar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(20),
+        borderRadius: BorderRadius.circular(50),
+      ),
+      child: Icon(Icons.person, size: 30, color: Colors.white),
     );
   }
 }

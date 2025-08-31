@@ -16,7 +16,9 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return TransactionModel()
+    return TransactionModel(
+      attachments: (fields[14] as List?)?.cast<TransactionAttachmentModel>(),
+    )
       ..id = fields[0] as String
       ..description = fields[1] as String
       ..notes = fields[2] as String?
@@ -36,7 +38,7 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
   @override
   void write(BinaryWriter writer, TransactionModel obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -64,7 +66,9 @@ class TransactionModelAdapter extends TypeAdapter<TransactionModel> {
       ..writeByte(12)
       ..write(obj.createdAt)
       ..writeByte(13)
-      ..write(obj.updatedAt);
+      ..write(obj.updatedAt)
+      ..writeByte(14)
+      ..write(obj.attachments);
   }
 
   @override

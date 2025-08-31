@@ -522,7 +522,7 @@ class _StatisticScreenState extends State<StatisticScreen> {
                     )
                   else
                     _buildChart(),
-                  AppSpacing.vertical(),
+
                   // Top Spending Header
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 15, vertical: 15),
@@ -598,48 +598,18 @@ class _StatisticScreenState extends State<StatisticScreen> {
               )
             // Category stats list (always shows base currency amounts)
             else
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  var stats = categoryStats.values.elementAt(index);
-                  // Always use converted amounts for display
-                  double displayAmount = stats.convertedAmount;
-
-                  // Calculate percentage of total
-                  double percentage =
-                      (_getTotalAmount() > 0)
-                          ? (displayAmount / _getTotalAmount()) * 100
-                          : 0;
-
-                  // Categories Tile
-                  return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15, vertical: 2),
-                    child: ListTileComponent(
-                      leadingIcon: Icon(
-                        Helper.transactionIcon[stats.categoryIcon] ??
-                            Icons.category,
-                        color: Color(int.parse(stats.categoryColor)),
-                        size: 30,
-                      ),
-                      iconBackgroundColor: Color(
-                        int.parse(stats.categoryColor),
-                      ).withAlpha(50),
-                      title: stats.categoryName,
-                      subtitle: '${percentage.toStringAsFixed(1)}% of total',
-                      subTitleColor: Color(int.parse(stats.categoryColor)),
-                      trailing: Helper.formatCurrency(
-                        stats.convertedAmount,
-                        baseCurrency,
-                        compact: true,
-                        symbolPosition: 'before',
-                      ),
-                      trailingColor:
-                          selectedType == 'expense'
-                              ? Colors.red.shade400
-                              : Colors.green.shade400,
-                      subTraiLing:
-                          '${stats.transactionCount} transaction${stats.transactionCount != 1 ? 's' : ''}',
+              SliverPadding(
+                padding: EdgeInsets.symmetric(horizontal: 15),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    var stats = categoryStats.values.elementAt(index);
+                    double displayAmount = stats.convertedAmount;
+                    double percentage =
+                        (_getTotalAmount() > 0)
+                            ? (displayAmount / _getTotalAmount()) * 100
+                            : 0;
+                    return GestureDetector(
                       onTap: () {
-                        // Navigate to category details or filter by category
                         Navigator.of(context).pushNamed(
                           AppRoutes.detailTransaction,
                           arguments: {
@@ -648,10 +618,89 @@ class _StatisticScreenState extends State<StatisticScreen> {
                           },
                         );
                       },
-                    ),
-                  );
-                }, childCount: categoryStats.length),
+                      child: Container(
+                        // Removed margin here for clean grid spacing
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withAlpha(50),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Color(
+                                int.parse(stats.categoryColor),
+                              ).withAlpha(50),
+                              child: Icon(
+                                Helper.transactionIcon[stats.categoryIcon] ??
+                                    Icons.category,
+                                color: Color(int.parse(stats.categoryColor)),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              stats.categoryName,
+                              style: AppStyles.semibold(size: 14),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '${percentage.toStringAsFixed(1)}% of total',
+                              style: AppStyles.regular1(
+                                color: Color(int.parse(stats.categoryColor)),
+                                size: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              Helper.formatCurrency(
+                                stats.convertedAmount,
+                                '\$',
+                                compact: true,
+                                symbolPosition: 'before',
+                              ),
+                              style: AppStyles.semibold(
+                                color:
+                                    selectedType == 'expense'
+                                        ? Colors.red.shade400
+                                        : Colors.green.shade400,
+                                size: 14,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              '${stats.transactionCount} transaction${stats.transactionCount != 1 ? 's' : ''}',
+                              style: AppStyles.regular1(
+                                color: Colors.grey.shade600,
+                                size: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }, childCount: categoryStats.length),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    childAspectRatio: 0.9,
+                  ),
+                ),
               ),
+            SliverToBoxAdapter(child: AppSpacing.vertical(size: 40)),
           ],
         ),
       ),

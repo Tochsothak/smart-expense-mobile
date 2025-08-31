@@ -27,6 +27,14 @@ class AuthService {
     return userModel;
   }
 
+  static Future<UserModel> updateProfile(Map<String, dynamic> user) async {
+    final userBox = await Hive.openBox(UserModel.userBox);
+
+    var userModel = await UserModel.fromMap(user);
+    await userBox.put(userModel.id, userModel);
+    return userModel;
+  }
+
   static Future<UserModel> update(Map<String, dynamic> user) async {
     final userBox = await Hive.openBox(UserModel.userBox);
     if (userBox.isEmpty) throw Exception("User does not exist");

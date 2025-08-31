@@ -39,4 +39,9 @@ class AccountTypeService {
 
     return accountTypeModels;
   }
+
+  static Future delete() async {
+    final accountTypeBox = await Hive.openBox(AccountTypeModel.accountTypeBox);
+    await accountTypeBox.clear();
+  }
 }

@@ -4,17 +4,21 @@ import 'package:smart_expense/models/account.dart';
 import 'package:smart_expense/models/account_type.dart';
 import 'package:smart_expense/models/category.dart';
 import 'package:smart_expense/models/currency.dart';
+
 import 'package:smart_expense/models/transaction.dart';
+import 'package:smart_expense/models/transaction_attachment.dart';
 import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_colours.dart';
 import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_strings.dart';
+
 import 'package:smart_expense/views/screens/account/account_detail.dart';
 import 'package:smart_expense/views/screens/account/add_account.dart';
 import 'package:smart_expense/views/pages/my_account_list.dart';
 import 'package:smart_expense/views/screens/account/setup_account.dart';
 import 'package:smart_expense/views/pages/profile.dart';
 import 'package:smart_expense/views/screens/account/update_account.dart';
+
 import 'package:smart_expense/views/screens/transaction/add_transaction.dart';
 import 'package:smart_expense/views/auth/forgot_password.dart';
 import 'package:smart_expense/views/auth/forgot_password_sent.dart';
@@ -37,13 +41,17 @@ import 'package:smart_expense/views/screens/transaction/update_transaction.dart'
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  // await Hive.deleteBoxFromDisk(AccountModel.accountBox);
+  // await Hive.deleteBoxFromDisk(UserModel.userBox);
   Hive.registerAdapter(UserModelAdapter());
   Hive.registerAdapter(CurrencyModelAdapter());
   Hive.registerAdapter(AccountTypeModelAdapter());
   Hive.registerAdapter(AccountModelAdapter());
   Hive.registerAdapter(CategoryModelAdapter());
   Hive.registerAdapter(TransactionModelAdapter());
+  Hive.registerAdapter(TransactionAttachmentModelAdapter());
+
+  //FOR DEVELOPMENT ONLY
+
   runApp(const MyApp());
 }
 
@@ -88,6 +96,8 @@ class MyApp extends StatelessWidget {
         AppRoutes.updateAccount: (context) => UpdateAccount(),
         AppRoutes.updateTransaction: (context) => UpdateTransaction(),
         AppRoutes.allTransactions: (context) => AllTransactions(),
+
+        //FOR DEVELOPMENT ONLY
       },
     );
   }

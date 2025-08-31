@@ -6,7 +6,6 @@ import 'package:smart_expense/resources/app_route.dart';
 import 'package:smart_expense/resources/app_spacing.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/resources/app_styles.dart';
-import 'package:smart_expense/utills/helper.dart';
 import 'package:smart_expense/views/components/ui/account_tile.dart';
 import 'package:smart_expense/views/components/ui/button.dart';
 import 'package:smart_expense/views/components/ui/indecator.dart';
@@ -79,7 +78,7 @@ class _MyAccountListState extends State<MyAccountList> {
                   itemBuilder: (context, index) {
                     final account = accountModels[index];
                     return AccountTile(
-                      width: 350,
+                      width: 383,
                       onTap: () {
                         Navigator.of(context).pushNamed(
                           AppRoutes.accountDetail,
@@ -93,9 +92,9 @@ class _MyAccountListState extends State<MyAccountList> {
                           '${account.transactionCount.toString()} ${accountModels.length > 1 ? 'transactions' : 'transaction'}',
                       income: account.totalIncomeText,
                       expense: account.totalExpenseText,
-                      topSize: 16,
-                      midSize: 24,
-                      bottomSize: 14,
+                      topSize: 24,
+                      midSize: 28,
+                      bottomSize: 16,
                     );
                   },
                 ),

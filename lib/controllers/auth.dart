@@ -3,10 +3,13 @@ import 'package:smart_expense/controllers/account.dart';
 import 'package:smart_expense/models/user.dart';
 import 'package:smart_expense/resources/app_strings.dart';
 import 'package:smart_expense/services/account.dart';
+import 'package:smart_expense/services/account_type.dart';
 import 'package:smart_expense/services/api.dart';
 import 'package:smart_expense/services/api_routes.dart';
 import 'package:smart_expense/models/result.dart';
 import 'package:smart_expense/services/auth.dart';
+import 'package:smart_expense/services/currency.dart';
+import 'package:smart_expense/services/transaction.dart';
 
 class AuthController {
   static Future<Result<UserModel>> register(
@@ -138,6 +141,9 @@ class AuthController {
 
       await AuthService.delete();
       await AccountService.delete();
+      await AccountTypeService.delete();
+      await CurrencyService.delete();
+      await TransactionService.delete();
 
       return Result(isSuccess: true, message: response.data['message']);
     } on DioException catch (e) {

@@ -21,10 +21,16 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: Padding(
           padding: EdgeInsets.all(4),
-          child: Text(
-            AppStrings.appName,
-            style: AppStyles.titleX(size: 40, color: Colors.white),
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('assets/images/smart_expense_logo.png', width: 200),
+              Text(
+                AppStrings.appName,
+                style: AppStyles.titleX(size: 38, color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),

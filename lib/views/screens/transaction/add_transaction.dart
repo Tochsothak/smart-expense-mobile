@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:smart_expense/controllers/account.dart';
 import 'package:smart_expense/controllers/category.dart';
 import 'package:smart_expense/controllers/transaction.dart';
@@ -49,34 +53,16 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
 
   bool _isLoading = false;
 
-  List<BottomSheetItem> bottomSheetItem = [
-    BottomSheetItem(
-      text: AppStrings.camera,
-      icon: Icons.camera_alt,
-      onTap: () {
-        print("Camera");
-      },
-    ),
-    BottomSheetItem(
-      text: AppStrings.image,
-      icon: Icons.image,
-      onTap: () {
-        print("image");
-      },
-    ),
-    BottomSheetItem(
-      text: AppStrings.document,
-      icon: Icons.document_scanner,
-      onTap: () {
-        print("document");
-      },
-    ),
-  ];
+  // File upload variables
+  List<File> selectedFiles = [];
+  final ImagePicker _imagePicker = ImagePicker();
+  bool _isUploading = false;
+
+  List<BottomSheetItem> bottomSheetItem = [];
 
   @override
   void dispose() {
     super.dispose();
-
     _amountEditingController.dispose();
     _textEditingDescriptionController.dispose();
     _textEditingNoteController.dispose();
@@ -95,13 +81,200 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
       if (arg != null && arg is String) {
         type = arg;
         _initScreen();
+        _initializeBottomSheetItems();
       }
     }
+  }
+
+  void _initializeBottomSheetItems() {
+    bottomSheetItem = [
+      BottomSheetItem(
+        text: AppStrings.camera,
+        icon: Icons.camera_alt,
+        onTap: () => _handleCameraCapture(),
+      ),
+      BottomSheetItem(
+        text: AppStrings.image,
+        icon: Icons.image,
+        onTap: () => _handleGallerySelection(),
+      ),
+      BottomSheetItem(
+        text: AppStrings.document,
+        icon: Icons.document_scanner,
+        onTap: () => _handleDocumentSelection(),
+      ),
+    ];
   }
 
   _initScreen() {
     _loadAccounts();
     _loadCategory();
+  }
+
+  // Media handling methods
+  Future<void> _handleCameraCapture() async {
+    Navigator.pop(context); // Close bottom sheet
+
+    // Check camera permission
+    final cameraStatus = await Permission.camera.request();
+    if (cameraStatus.isDenied) {
+      _showPermissionDialog('Camera');
+      return;
+    }
+
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          selectedFiles.add(File(image.path));
+        });
+        Helper.snackBar(
+          context,
+          message: 'Photo captured successfully',
+          isSuccess: true,
+        );
+      }
+    } catch (e) {
+      Helper.snackBar(
+        context,
+        message: 'Failed to capture photo: $e',
+        isSuccess: false,
+      );
+    }
+  }
+
+  Future<void> _handleGallerySelection() async {
+    Navigator.pop(context); // Close bottom sheet
+
+    // Check photo permission
+    final photoStatus = await Permission.storage.request();
+    if (photoStatus.isDenied) {
+      _showPermissionDialog('Storage');
+      return;
+    }
+
+    try {
+      final List<XFile> images = await _imagePicker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (images.isNotEmpty) {
+        setState(() {
+          selectedFiles.addAll(images.map((image) => File(image.path)));
+        });
+        Helper.snackBar(
+          context,
+          message: '${images.length} image(s) selected',
+          isSuccess: true,
+        );
+      }
+    } catch (e) {
+      Helper.snackBar(
+        context,
+        message: 'Failed to select images: $e',
+        isSuccess: false,
+      );
+    }
+  }
+
+  Future<void> _handleDocumentSelection() async {
+    Navigator.pop(context); // Close bottom sheet
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png'],
+        allowMultiple: true,
+      );
+
+      if (result != null) {
+        setState(() {
+          selectedFiles.addAll(
+            result.paths.map((path) => File(path!)).toList(),
+          );
+        });
+        Helper.snackBar(
+          context,
+          message: '${result.files.length} document(s) selected',
+          isSuccess: true,
+        );
+      }
+    } catch (e) {
+      Helper.snackBar(
+        context,
+        message: 'Failed to select documents: $e',
+        isSuccess: false,
+      );
+    }
+  }
+
+  void _showPermissionDialog(String permissionType) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Permission Required'),
+          content: Text(
+            '$permissionType permission is required to upload files. Please enable it in app settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                openAppSettings();
+              },
+              child: Text('Settings'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _removeFile(int index) {
+    setState(() {
+      selectedFiles.removeAt(index);
+    });
+    Helper.snackBar(context, message: 'File removed', isSuccess: true);
+  }
+
+  String _getFileDisplayName(File file) {
+    String fileName = file.path.split('/').last;
+    if (fileName.length > 20) {
+      return '${fileName.substring(0, 17)}...';
+    }
+    return fileName;
+  }
+
+  IconData _getFileIcon(File file) {
+    String extension = file.path.split('.').last.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      case 'txt':
+        return Icons.text_snippet;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icons.image;
+      default:
+        return Icons.insert_drive_file;
+    }
   }
 
   @override
@@ -138,7 +311,8 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
   Container _detailForm() {
     return Container(
       width: MediaQuery.of(context).size.width / 1.1,
-      height: 750,
+      // Dynamic height based on selected files
+      height: selectedFiles.isNotEmpty ? 950 : 750,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -215,7 +389,6 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
               textInputAction: TextInputAction.next,
               textInputType: TextInputType.text,
             ),
-
             AppSpacing.vertical(),
             TextInputComponent(
               isEnabled: !_isLoading,
@@ -238,6 +411,7 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
               prefixIcon: Icon(Icons.date_range, color: AppColours.light20),
             ),
             AppSpacing.vertical(),
+            // File upload section
             GestureDetector(
               onTap: () {
                 _showModalBottomSheet();
@@ -254,25 +428,146 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
                     Icon(Icons.attachment, size: 24, color: AppColours.light20),
                     AppSpacing.horizontal(size: 6),
                     Text(
-                      AppStrings.addAttachment,
-                      style: AppStyles.regular1(color: AppColours.light20),
+                      selectedFiles.isEmpty
+                          ? AppStrings.addAttachment
+                          : '${selectedFiles.length} file(s) selected',
+                      style: AppStyles.regular1(
+                        color:
+                            selectedFiles.isEmpty
+                                ? AppColours.light20
+                                : AppColours.primaryColour,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
 
+            // Selected files display
+            if (selectedFiles.isNotEmpty) ...[
+              AppSpacing.vertical(),
+              _buildSelectedFilesSection(),
+            ],
+
             Spacer(),
 
             ButtonComponent(
-              isLoading: _isLoading,
+              isLoading: _isLoading || _isUploading,
               label: AppStrings.continueText,
               type: type == 'expense' ? ButtonType.expense : ButtonType.income,
-              onPressed: _handleSubmit,
+              onPressed: () {
+                _isLoading || _isUploading ? null : _handleSubmit();
+              },
             ),
             AppSpacing.vertical(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedFilesSection() {
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(maxHeight: 200),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Selected Files (${selectedFiles.length})',
+                  style: AppStyles.medium(size: 14),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedFiles.clear();
+                    });
+                  },
+                  child: Text(
+                    'Clear All',
+                    style: AppStyles.regular1(
+                      color: Colors.red.shade400,
+                      size: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              itemCount: selectedFiles.length,
+              itemBuilder: (context, index) {
+                File file = selectedFiles[index];
+
+                return Container(
+                  margin: EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getFileIcon(file),
+                        color: AppColours.primaryColour,
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getFileDisplayName(file),
+                              style: AppStyles.medium(size: 12),
+                            ),
+                            Text(
+                              '${(file.lengthSync() / 1024).toStringAsFixed(1)} KB',
+                              style: AppStyles.regular1(
+                                color: Colors.grey.shade600,
+                                size: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _removeFile(index),
+                        icon: Icon(
+                          Icons.close,
+                          color: Colors.red.shade400,
+                          size: 16,
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 8),
+        ],
       ),
     );
   }
@@ -295,62 +590,72 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
       context: context,
       builder:
           (context) => Container(
-            height: 150,
+            height: 180,
             decoration: BoxDecoration(
-              color:
-                  type == 'expense'
-                      ? Colors.red.shade400
-                      : Colors.green.shade400,
+              color: Colors.white,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+              child: Column(
                 children: [
-                  ...bottomSheetItem.map((b) {
-                    return GestureDetector(
-                      onTap: b.onTap,
-                      child: Container(
-                        height: 100,
-                        width: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Icon(
-                                b.icon,
-                                color:
-                                    type == 'expense'
-                                        ? Colors.red.shade400
-                                        : Colors.green.shade400,
-                                size: 50,
+                  Text(
+                    "Select attachment type",
+                    style: AppStyles.medium(size: 18),
+                  ),
+                  AppSpacing.vertical(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      ...bottomSheetItem.map((b) {
+                        return GestureDetector(
+                          onTap: b.onTap,
+                          child: Container(
+                            height: 100,
+                            width: 120,
+                            decoration: BoxDecoration(
+                              color:
+                                  type == 'expense'
+                                      ? Colors.red.shade50
+                                      : Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    b.icon,
+                                    color:
+                                        type == 'expense'
+                                            ? Colors.red.shade400
+                                            : Colors.green.shade400,
+                                    size: 50,
+                                  ),
+                                  Text(
+                                    b.text,
+                                    style: AppStyles.medium(
+                                      color:
+                                          type == 'expense'
+                                              ? Colors.red.shade400
+                                              : Colors.green.shade400,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Text(
-                                b.text,
-                                style: AppStyles.medium(
-                                  color:
-                                      type == 'expense'
-                                          ? Colors.red.shade400
-                                          : Colors.green.shade400,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  }),
+                        );
+                      }),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -453,7 +758,7 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
     if (!_formKey.currentState!.validate()) {
       Helper.snackBar(
         context,
-        message: "Please complete the form ",
+        message: "Please complete the form",
         isSuccess: false,
       );
       return;
@@ -461,39 +766,48 @@ class _AddTranSactionScreenState extends State<AddTranSactionScreen> {
 
     setState(() => _isLoading = true);
 
-    final amount = Helper.parseAmount(_amountEditingController.text.trim());
+    try {
+      final amount = Helper.parseAmount(_amountEditingController.text.trim());
 
-    final result = await TransactionController.create(
-      selectedAccount?.id ?? '',
-      amount,
-      selectedCategory?.id ?? '',
-      _textEditingDescriptionController.text.trim(),
-      type!,
-      _textEditingDateTimeController.text,
-      _textEditingNoteController.text.trim(),
-    );
+      // Use the new createWithFiles method
+      final result = await TransactionController.createWithFiles(
+        selectedAccount?.id ?? '',
+        amount,
+        selectedCategory?.id ?? '',
+        _textEditingDescriptionController.text.trim(),
+        type!,
+        _textEditingDateTimeController.text,
+        _textEditingNoteController.text.trim(),
+        selectedFiles, // Pass the selected files
+      );
 
-    setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
 
-    print("Result : $result");
+      if (!result.isSuccess) {
+        Helper.snackBar(context, message: result.message, isSuccess: false);
+        return;
+      }
 
-    if (!result.isSuccess) {
-      Helper.snackBar(context, message: result.message, isSuccess: false);
-      return;
+      Helper.snackBar(
+        context,
+        isSuccess: true,
+        message: AppStrings.dataAddSuccess.replaceAll(
+          ":data",
+          AppStrings.transaction,
+        ),
+      );
+
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.bottomNavigationBar,
+        (Route<dynamic> route) => false,
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      Helper.snackBar(
+        context,
+        message: "An error occurred: $e",
+        isSuccess: false,
+      );
     }
-
-    Helper.snackBar(
-      context,
-      isSuccess: true,
-      message: AppStrings.dataAddSuccess.replaceAll(
-        ":data",
-        AppStrings.transaction,
-      ),
-    );
-
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.bottomNavigationBar,
-      (Route<dynamic> route) => false,
-    );
   }
 }

@@ -33,4 +33,9 @@ class CurrencyService {
     }
     return currencyModels;
   }
+
+  static Future delete() async {
+    final currencyBox = await Hive.openBox(CurrencyModel.currencyBox);
+    await currencyBox.clear();
+  }
 }

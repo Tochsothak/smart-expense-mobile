@@ -1,6 +1,7 @@
 import 'package:hive/hive.dart';
 import 'package:smart_expense/models/account.dart';
 import 'package:smart_expense/models/category.dart';
+import 'package:smart_expense/models/transaction_attachment.dart';
 
 part 'transaction.g.dart';
 
@@ -48,6 +49,12 @@ class TransactionModel {
   @HiveField(13)
   late String? updatedAt;
 
+  @HiveField(14)
+  List<TransactionAttachmentModel>? attachments;
+
+  // Constructor
+  TransactionModel({this.attachments});
+
   static String transactionBox = "transactions";
 
   static fromMap(Map<String, dynamic> transactions) {
@@ -72,7 +79,76 @@ class TransactionModel {
     transactionModel.referenceNumber = transactions['reference_number'];
     transactionModel.active = int.parse(transactions['active'].toString());
 
+    // Handle attachments
+    if (transactions['attachments'] != null) {
+      transactionModel.attachments =
+          (transactions['attachments'] as List)
+              .map(
+                (attachment) => TransactionAttachmentModel.fromMap(attachment),
+              )
+              .toList();
+    } else {
+      transactionModel.attachments = [];
+    }
     return transactionModel;
+  }
+
+  // Helper methods for attachments
+  bool get hasAttachments => attachments != null && attachments!.isNotEmpty;
+
+  int get attachmentCount => attachments?.length ?? 0;
+
+  List<TransactionAttachmentModel> get imageAttachments {
+    if (attachments == null) return [];
+    return attachments!.where((attachment) => attachment.isImage).toList();
+  }
+
+  List<TransactionAttachmentModel> get documentAttachments {
+    if (attachments == null) return [];
+    return attachments!.where((attachment) => attachment.isDocument).toList();
+  }
+
+  // Add attachment
+  void addAttachment(TransactionAttachmentModel attachment) {
+    attachments ??= [];
+    attachments!.add(attachment);
+  }
+
+  // Remove attachment
+  void removeAttachment(String attachmentId) {
+    attachments?.removeWhere((attachment) => attachment.id == attachmentId);
+  }
+
+  // Get attachment by ID
+  TransactionAttachmentModel? getAttachmentById(String attachmentId) {
+    if (attachments == null) return null;
+    try {
+      return attachments!.firstWhere(
+        (attachment) => attachment.id == attachmentId,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Clear all attachments
+  void clearAttachments() {
+    attachments?.clear();
+  }
+
+  // Update attachment
+  void updateAttachment(
+    String attachmentId,
+    TransactionAttachmentModel updatedAttachment,
+  ) {
+    if (attachments == null) return;
+
+    final index = attachments!.indexWhere(
+      (attachment) => attachment.id == attachmentId,
+    );
+    if (index != -1) {
+      attachments![index] = updatedAttachment;
+    }
   }
 
   bool isEqual(TransactionModel model) {
